@@ -8,7 +8,7 @@ import SavegameList from './views/SavegameList';
 
 import * as Promise from 'bluebird';
 import * as path from 'path';
-import { fs, selectors, types, util } from 'vortex-api';
+import { fs, log, selectors, types, util } from 'vortex-api';
 import IniParser, {IniFile, WinapiFormat} from 'vortex-parse-ini';
 
 const parser = new IniParser(new WinapiFormat());
@@ -132,6 +132,13 @@ function init(context): boolean {
                 fs.watch(savesPath, {}, (evt: string, filename: string) => {
                   update.schedule(undefined);
                 });
+            fsWatcher.on('error', error => {
+              // going by the amount of feedback on this it appears like it's a very common thing to
+              // delete your savegame directory...
+              log('warn', 'failed to watch savegame directory', { savesPath, error });
+              fsWatcher.close();
+              fsWatcher = undefined;
+            });
           } catch (err) {
             context.api.showErrorNotification('Can\'t watch saves directory for changes', {
               path: savesPath, error: err.message,
