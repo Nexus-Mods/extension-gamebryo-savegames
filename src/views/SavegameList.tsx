@@ -222,7 +222,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         <tooltip.IconButton
           id='btn-transfer-save-cancel'
           tooltip={t('Cancel')}
-          icon='remove'
+          icon='input-cancel'
           onClick={this.cancelTransfer}
         />
       </div>
