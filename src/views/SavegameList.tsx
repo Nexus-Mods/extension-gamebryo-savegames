@@ -108,7 +108,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     if (showTransfer) {
       header = this.renderTransfer();
       saveActions = [].concat([{
-        icon: 'sign-in',
+        icon: 'transfer',
         title: t('Import'),
         action: this.importSaves,
       }], this.savegameActions);
