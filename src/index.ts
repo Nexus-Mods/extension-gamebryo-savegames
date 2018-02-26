@@ -112,7 +112,7 @@ function init(context): boolean {
         .then((failedReads: string[]) => {
           if (failedReads.length > 0) {
             context.api.showErrorNotification('Some saves couldn\'t be read',
-              failedReads.join('\n'));
+              failedReads.join('\n'), { allowReport: false });
           }
 
           if (fsWatcher !== undefined) {
@@ -123,7 +123,7 @@ function init(context): boolean {
               .then((failedReadsInner: string[]) => {
                 if (failedReadsInner.length > 0) {
                   context.api.showErrorNotification('Some saves couldn\'t be read',
-                    failedReadsInner.join('\n'));
+                    failedReadsInner.join('\n'), { allowReport: false });
                 }
             });
           }, 1000);
