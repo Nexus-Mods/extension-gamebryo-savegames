@@ -1,7 +1,8 @@
 .cell-screenshot .screenshot-canvas {
   max-height: 56px;
-  width: auto;
   border: $border-width solid $border-color;
+  width: 137px;
+  object-fit: cover;
 }
 
 #table-savegames {
