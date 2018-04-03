@@ -29,6 +29,13 @@ const gameSupport: { [key: string]: IGameSupport } = {
       return [].concat([input], scriptExtenderFiles(input, 'skse'));
     },
   },
+  skyrimvr: {
+    mygamesPath: 'Skyrim VR',
+    iniName: 'Skyrim.ini',
+    saveFiles: (input: string): string[] => {
+      return [].concat([input], scriptExtenderFiles(input, 'skse'));
+    },
+  },
   fallout3: {
     mygamesPath: 'Fallout3',
     iniName: 'Fallout.ini',
