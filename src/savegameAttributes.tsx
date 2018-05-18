@@ -52,9 +52,7 @@ export const LEVEL: types.ITableAttribute = {
   isToggleable: true,
   isSortable: true,
   filter: new TableNumericFilter(),
-  sortFunc: (lhs: number, rhs: number): number => {
-    return (rhs - lhs);
-  },
+  sortFunc: (lhs: number, rhs: number): number => lhs - rhs,
   edit: {},
 };
 
