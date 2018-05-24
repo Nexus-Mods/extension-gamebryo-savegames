@@ -438,7 +438,7 @@ function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
     onShowActivity: (message: string, id?: string) =>
       util.showActivity(dispatch, message, id),
     onShowError: (message: string, details: any, id?: string, allowReport?: boolean) =>
-      util.showError(dispatch, message, details, false, id,  allowReport),
+      util.showError(dispatch, message, details, { id, allowReport }),
     onShowSuccess: (message: string, id?: string) =>
       util.showSuccess(dispatch, message, id),
     onDismissNotification: (id: string) => dispatch(actions.dismissNotification(id)),
