@@ -154,12 +154,6 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           {this.renderSavegameActivity()}
           {content}
         </MainPage.Body>
-        <MainPage.Overlay>
-          <IconBar
-            group='savegames-icons'
-            orientation='vertical'
-          />
-        </MainPage.Overlay>
       </MainPage>
     );
   }
