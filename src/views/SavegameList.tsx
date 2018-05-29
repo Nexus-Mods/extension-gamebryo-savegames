@@ -315,7 +315,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           });
       })
       .catch((err: Error) => {
-        onShowError('Failed to restore plugins', 'Restore canceled', notificationId);
+        onShowError('Failed to restore plugins', err, notificationId);
       });
   }
 
