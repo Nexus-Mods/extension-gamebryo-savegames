@@ -2,7 +2,7 @@ import { clearSavegames, setSavegamePath,
    setSavegames, showTransferDialog } from './actions/session';
 import { sessionReducer } from './reducers/session';
 import { ISavegame } from './types/ISavegame';
-import {gameSupported, iniPath, mygamesPath} from './util/gameSupport';
+import {gameSupported, iniPath, mygamesPath, prefIniPath} from './util/gameSupport';
 import refreshSavegames from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';
 
@@ -18,38 +18,59 @@ function updateSaveSettings(store: Redux.Store<any>,
                             profileId: string): Promise<string> {
   const state: types.IState = store.getState();
   const profile = state.persistent.profiles[profileId];
+
   if (profile === undefined) {
     // how did we get here then???
     return Promise.reject(new util.ProcessCanceled('no current profile'));
   }
 
-  return parser.read(iniPath(profile.gameId))
+  const localSaves = util.getSafe(profile, ['features', 'local_saves'], false);
+  const savePath = localSaves
+            ? path.join('Saves', profile.id) + path.sep
+            : 'Saves' + path.sep;
+
+  const fullPath = mygamesPath(profile.gameId) + path.sep + savePath;
+  return fs.ensureDirAsync(fullPath)
+    .then(() => setSavePath(store, profile, savePath))
+    .then(() => unsetInPrefs(profile))
+    .then(() => fullPath);
+}
+
+function setSavePath(store: Redux.Store<any>,
+                     profile: types.IProfile,
+                     savePath: string): Promise<void> {
+  const iniFilePath = iniPath(profile.gameId);
+  return parser.read(iniFilePath)
     .then((iniFile: IniFile<any>) => {
-      const localPath = path.join('Saves', profileId);
       if (iniFile.data.General === undefined) {
         iniFile.data.General = {};
       }
       // TODO: we should provide a way for the user to set his own
       //   save path without overwriting it
-      iniFile.data.General.SLocalSavePath =
-          util.getSafe(profile, ['features', 'local_saves'], false)
-            ? localPath + path.sep
-            : iniFile.data.General.SLocalSavePath = 'Saves' + path.sep;
+      iniFile.data.General.SLocalSavePath = savePath;
 
-      parser.write(iniPath(profile.gameId), iniFile);
+      parser.write(iniFilePath, iniFile);
 
-      store.dispatch(setSavegamePath(iniFile.data.General.SLocalSavePath));
+      store.dispatch(setSavegamePath(savePath));
       store.dispatch(clearSavegames());
+    });
+}
 
-      if (!gameSupported(profile.gameId)) {
+function unsetInPrefs(profile: types.IProfile): Promise<void> {
+  const prefPath = prefIniPath(profile.gameId);
+  if (prefPath === undefined) {
+    return Promise.resolve();
+  }
+
+  return parser.read(prefPath)
+    .then((iniFile: IniFile<any>) => {
+      if ((iniFile.data.General === undefined)
+          || (iniFile.data.General.SLocalSavePath === undefined)) {
         return;
       }
+      iniFile.data.General.SLocalSavePath = undefined;
 
-      const readPath = mygamesPath(profile.gameId) + path.sep +
-        iniFile.data.General.SLocalSavePath;
-
-      return fs.ensureDirAsync(readPath)
-        .then(() => Promise.resolve(readPath));
+      parser.write(prefPath, iniFile);
     });
 }
 

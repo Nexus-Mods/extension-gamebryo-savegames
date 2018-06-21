@@ -6,6 +6,7 @@ const app = appIn || remote.app;
 interface IGameSupport {
   mygamesPath: string;
   iniName: string;
+  prefIniName?: string;
   saveFiles: (input: string) => string[];
 }
 
@@ -18,6 +19,7 @@ const gameSupport: { [key: string]: IGameSupport } = {
   skyrim: {
     mygamesPath: 'skyrim',
     iniName: 'Skyrim.ini',
+    prefIniName: 'SkyrimPrefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'skse'));
     },
@@ -25,6 +27,7 @@ const gameSupport: { [key: string]: IGameSupport } = {
   skyrimse: {
     mygamesPath: 'Skyrim Special Edition',
     iniName: 'Skyrim.ini',
+    prefIniName: 'SkyrimPrefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'skse'));
     },
@@ -32,6 +35,7 @@ const gameSupport: { [key: string]: IGameSupport } = {
   skyrimvr: {
     mygamesPath: 'Skyrim VR',
     iniName: 'Skyrim.ini',
+    prefIniName: 'SkyrimPrefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'skse'));
     },
@@ -39,6 +43,7 @@ const gameSupport: { [key: string]: IGameSupport } = {
   fallout3: {
     mygamesPath: 'Fallout3',
     iniName: 'Fallout.ini',
+    prefIniName: 'FalloutPrefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'fose'));
     },
@@ -46,6 +51,7 @@ const gameSupport: { [key: string]: IGameSupport } = {
   fallout4: {
     mygamesPath: 'Fallout4',
     iniName: 'Fallout4.ini',
+    prefIniName: 'Fallout4Prefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'f4se'));
     },
@@ -60,6 +66,7 @@ const gameSupport: { [key: string]: IGameSupport } = {
   falloutnv: {
     mygamesPath: 'FalloutNV',
     iniName: 'Fallout.ini',
+    prefIniName: 'FalloutPrefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'nvse'));
     },
@@ -85,6 +92,14 @@ export function mygamesPath(gameMode: string): string {
 export function iniPath(gameMode: string): string {
   const { iniName } = gameSupport[gameMode];
   return path.join(mygamesPath(gameMode), iniName);
+}
+
+export function prefIniPath(gameMode: string): string {
+  const { prefIniName } = gameSupport[gameMode];
+  if (prefIniName === undefined) {
+    return undefined;
+  }
+  return path.join(mygamesPath(gameMode), prefIniName);
 }
 
 export function saveFiles(gameMode: string, savePath: string): string[] {
