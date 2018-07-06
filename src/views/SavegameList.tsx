@@ -113,11 +113,13 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         action: this.importSaves,
       }], this.savegameActions);
     } else {
+      const IconBarX: any = IconBar;
       header = (
-        <IconBar
+        <IconBarX
           group='savegames-icons'
           orientation='vertical'
           className='menubar'
+          t={t}
         />
       );
     }
