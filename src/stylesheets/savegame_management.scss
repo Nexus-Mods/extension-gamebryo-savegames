@@ -2,7 +2,7 @@
   max-height: 56px;
   border: $border-width solid $border-color;
   width: 137px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 #table-savegames {
