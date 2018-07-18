@@ -95,7 +95,12 @@ function updateSaves(store: Redux.Store<any>,
   });
 }
 
-function init(context): boolean {
+interface IExtensionContextExt extends types.IExtensionContext {
+  registerProfileFeature: (featureId: string, type: string, icon: string, label: string, description: string,
+       supported: () => boolean) => void;
+}
+
+function init(context: IExtensionContextExt): boolean {
   context.registerAction('savegames-icons', 200, 'transfer', {}, 'Transfer Savegames', () => {
     context.api.store.dispatch(showTransferDialog(true));
   });
@@ -110,6 +115,12 @@ function init(context): boolean {
   context.registerProfileFeature(
       'local_saves', 'boolean', 'savegame', 'Save Games', 'This profile has its own save games',
       () => gameSupported(selectors.activeGameId(context.api.store.getState())));
+  context.registerAction('profile-actions', 100, 'open-ext', {}, 'Open Savegames', (instanceIds: string[]) => {
+    const state: types.IState = context.api.store.getState();
+    const profile = state.persistent.profiles[instanceIds[0]];
+    const profileSavesPath = path.join(mygamesPath(profile.gameId), 'Saves', profile.id);
+    (util as any).opn(profileSavesPath);
+  });
 
   context.once(() => {
     const store: Redux.Store<any> = context.api.store;
