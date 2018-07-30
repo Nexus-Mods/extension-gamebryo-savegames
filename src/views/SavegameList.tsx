@@ -23,19 +23,7 @@ import {
   MainPage, selectors, Spinner, Table, tooltip, types, util,
 } from 'vortex-api';
 
-// current typings know neither the function nor the return value
-declare const createImageBitmap: (imgData: ImageData) => Promise<any>;
-
 const placeholder: string = '------';
-
-class Dimensions {
-  public width: number;
-  public height: number;
-  constructor(width: number, height: number) {
-    this.width = width;
-    this.height = height;
-  }
-}
 
 interface IConnectedProps {
   currentProfile: types.IProfile;
@@ -363,7 +351,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   private importSaves = (instanceIds: string[]) => {
-    const { t, currentProfile, onShowDialog, saves, savesPath } = this.props;
+    const { t, currentProfile, onShowDialog } = this.props;
     const { importSaves, profileId } = this.state;
 
     const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);

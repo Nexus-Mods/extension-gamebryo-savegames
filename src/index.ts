@@ -7,6 +7,7 @@ import refreshSavegames from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';
 
 import * as Promise from 'bluebird';
+import { remote } from 'electron';
 import * as path from 'path';
 import { fs, log, selectors, types, util } from 'vortex-api';
 import IniParser, {IniFile, WinapiFormat} from 'vortex-parse-ini';
@@ -124,9 +125,36 @@ function init(context: IExtensionContextExt): boolean {
 
   context.once(() => {
     const store: Redux.Store<any> = context.api.store;
+    let missedUpdate: { profileId: string, savesPath: string };
 
     context.api.setStylesheet('savegame-management',
                               path.join(__dirname, 'savegame_management.scss'));
+
+    const update = new util.Debouncer((profileId: string, savesPath: string) => {
+      if (!remote.getCurrentWindow().isFocused()) {
+        missedUpdate = { profileId, savesPath };
+        console.log('not focused', missedUpdate);
+        return Promise.resolve();
+      }
+
+      console.log('do update', profileId, savesPath);
+
+      missedUpdate = undefined;
+      return updateSaves(store, profileId, savesPath)
+        .then((failedReadsInner: string[]) => {
+          if (failedReadsInner.length > 0) {
+            context.api.showErrorNotification('Some saves couldn\'t be read',
+              failedReadsInner.join('\n'), { allowReport: false });
+          }
+        });
+    }, 1000);
+
+    remote.getCurrentWindow().on('focus', () => {
+      if (missedUpdate !== undefined) {
+        console.log('had a missed update', missedUpdate);
+        update.schedule(undefined, missedUpdate.profileId, missedUpdate.savesPath);
+      }
+    });
 
     context.api.events.on('profile-did-change', (profileId: string) => {
       const profile: types.IProfile =
@@ -150,19 +178,10 @@ function init(context: IExtensionContextExt): boolean {
           if (fsWatcher !== undefined) {
             fsWatcher.close();
           }
-          const update = new util.Debouncer(() => {
-            return updateSaves(store, profileId, savesPath)
-              .then((failedReadsInner: string[]) => {
-                if (failedReadsInner.length > 0) {
-                  context.api.showErrorNotification('Some saves couldn\'t be read',
-                    failedReadsInner.join('\n'), { allowReport: false });
-                }
-            });
-          }, 1000);
           try {
             fsWatcher =
                 fs.watch(savesPath, {}, (evt: string, filename: string) => {
-                  update.schedule(undefined);
+                  update.schedule(undefined, profileId, savesPath);
                 });
             fsWatcher.on('error', error => {
               // going by the amount of feedback on this it appears like it's a very common thing to
