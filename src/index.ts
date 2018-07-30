@@ -133,11 +133,8 @@ function init(context: IExtensionContextExt): boolean {
     const update = new util.Debouncer((profileId: string, savesPath: string) => {
       if (!remote.getCurrentWindow().isFocused()) {
         missedUpdate = { profileId, savesPath };
-        console.log('not focused', missedUpdate);
         return Promise.resolve();
       }
-
-      console.log('do update', profileId, savesPath);
 
       missedUpdate = undefined;
       return updateSaves(store, profileId, savesPath)
@@ -151,7 +148,6 @@ function init(context: IExtensionContextExt): boolean {
 
     remote.getCurrentWindow().on('focus', () => {
       if (missedUpdate !== undefined) {
-        console.log('had a missed update', missedUpdate);
         update.schedule(undefined, missedUpdate.profileId, missedUpdate.savesPath);
       }
     });
