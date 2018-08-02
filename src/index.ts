@@ -121,6 +121,10 @@ function init(context: IExtensionContextExt): boolean {
     const profile = state.persistent.profiles[instanceIds[0]];
     const profileSavesPath = path.join(mygamesPath(profile.gameId), 'Saves', profile.id);
     (util as any).opn(profileSavesPath);
+  }, (instanceIds: string[]) => {
+    const state: types.IState = context.api.store.getState();
+    const profile = state.persistent.profiles[instanceIds[0]];
+    return gameSupported(profile.gameId);
   });
 
   context.once(() => {
