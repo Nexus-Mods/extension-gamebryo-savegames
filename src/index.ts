@@ -9,6 +9,7 @@ import SavegameList from './views/SavegameList';
 import * as Promise from 'bluebird';
 import { remote } from 'electron';
 import * as path from 'path';
+import * as Redux from 'redux';
 import { fs, log, selectors, types, util } from 'vortex-api';
 import IniParser, {IniFile, WinapiFormat} from 'vortex-parse-ini';
 
