@@ -60,7 +60,7 @@ function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void
 
       const save: ISavegame = {
         id: path.basename(filePath),
-        savegameBind: sg,
+        filePath,
         attributes: {
           id: sg.saveNumber,
           name: sg.characterName,
@@ -68,7 +68,10 @@ function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void
           filename: path.basename(filePath),
           location: sg.location,
           plugins: sg.plugins,
-          screenshot: sg.screenshotSize,
+          screenshot: {
+            width: sg.screenshotSize.width,
+            height: sg.screenshotSize.height,
+          },
           isToggleable: true,
           creationtime: timestampFormat(sg.creationTime),
         },

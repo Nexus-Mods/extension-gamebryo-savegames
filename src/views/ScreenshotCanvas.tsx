@@ -1,7 +1,9 @@
 import { ISavegame } from '../types/ISavegame';
 
-import { Dimensions } from 'gamebryo-savegame';
+import savegameLibInit, { Dimensions } from 'gamebryo-savegame';
 import * as React from 'react';
+
+const savegameLib = savegameLibInit('savegameLib');
 
 interface ICanvasProps {
   save: ISavegame;
@@ -18,7 +20,8 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
     const imgData: ImageData = ctx.createImageData(
       Math.max(this.screenshotCanvas.width, 1), Math.max(this.screenshotCanvas.height, 1));
 
-    this.props.save.savegameBind.screenshot(imgData.data);
+    const sg = new savegameLib.GamebryoSaveGame(this.props.save.filePath);
+    sg.screenshot(imgData.data);
     createImageBitmap(imgData)
       .then((bitmap) => {
         ctx.drawImage(bitmap, 0, 0);

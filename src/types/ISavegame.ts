@@ -3,6 +3,6 @@ export type SavegameState =
 
 export interface ISavegame {
   id: string;
-  savegameBind: any;
+  filePath: string;
   attributes: { [id: string]: any };
 }
