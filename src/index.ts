@@ -120,8 +120,12 @@ function init(context: IExtensionContextExt): boolean {
   context.registerAction('profile-actions', 100, 'open-ext', {}, 'Open Savegames', (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
-    const profileSavesPath = path.join(mygamesPath(profile.gameId), 'Saves', profile.id);
-    (util as any).opn(profileSavesPath);
+    const hasLocalSaves = util.getSafe(profile, ['features', 'local_saves'], false);
+    const profileSavesPath = hasLocalSaves
+        ? path.join(mygamesPath(profile.gameId), 'Saves', profile.id)
+        : path.join(mygamesPath(profile.gameId), 'Saves');
+    (util as any).opn(profileSavesPath)
+      .catch(err => context.api.showErrorNotification('Failed to open savegame directory', err));
   }, (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
