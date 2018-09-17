@@ -328,6 +328,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           return Promise.map(instanceIds, id => !!id
             ? Promise.map(saveFiles(currentProfile.gameId, id), filePath =>
               fs.removeAsync(path.join(mygamesPath(currentProfile.gameId), savesPath, filePath))
+                .catch(util.UserCanceled, () => undefined)
                 .catch(err => {
                   if (err.code === 'ENOENT') {
                     return Promise.resolve();
