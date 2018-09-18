@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/i18next": "^8.4.0",
     "@types/iconv-lite": "^0.0.1",
-    "@types/immutability-helper": "^2.0.15",
+    "@types/immutability-helper": "^2.6.3",
     "@types/react": "16.0.34",
     "@types/react-bootstrap": "^0.0.37",
     "@types/react-dom": "16.0.3",
