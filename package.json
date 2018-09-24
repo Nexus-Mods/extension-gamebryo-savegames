@@ -40,7 +40,7 @@
     "gamebryo-savegame": "Nexus-Mods/node-gamebryo-savegames",
     "i18next": "^3.5.1",
     "iconv-lite": "^0.4.15",
-    "immutability-helper": "^2.2.2",
+    "immutability-helper": "^2.8.1",
     "json-loader": "^0.5.4",
     "prop-types": "^15.6.1",
     "redux-act": "^1.7.3",
