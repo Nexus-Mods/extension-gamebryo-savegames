@@ -11,7 +11,7 @@ let collator: Intl.Collator;
 
 export const SAVEGAME_ID: types.ITableAttribute = {
   id: 'id',
-  name: 'Savegame id',
+  name: 'Save Game ID',
   description: 'Id of the savegame',
   icon: 'id-badge',
   calc: (savegame: ISavegame) => (savegame.attributes as any).id,
@@ -24,7 +24,7 @@ export const SAVEGAME_ID: types.ITableAttribute = {
 
 export const CHARACTER_NAME: types.ITableAttribute = {
   id: 'name',
-  name: 'Character name',
+  name: 'Character Name',
   description: 'Name of the character',
   icon: 'quote-left',
   calc: (savegame: ISavegame) => (savegame.attributes as any).name,
@@ -44,7 +44,7 @@ export const CHARACTER_NAME: types.ITableAttribute = {
 
 export const LEVEL: types.ITableAttribute = {
   id: 'level',
-  name: 'Character level',
+  name: 'Character Level',
   description: 'Level of the character',
   icon: 'level-up',
   calc: (savegame: ISavegame) => (savegame.attributes as any).level,
@@ -58,7 +58,7 @@ export const LEVEL: types.ITableAttribute = {
 
 export const LOCATION: types.ITableAttribute = {
   id: 'location',
-  name: 'Ingame location',
+  name: 'Ingame Location',
   description: 'Location during the save',
   icon: 'map-marker',
   calc: (savegame: ISavegame) => (savegame.attributes as any).location,

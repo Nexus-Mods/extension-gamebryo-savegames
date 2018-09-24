@@ -103,7 +103,7 @@ interface IExtensionContextExt extends types.IExtensionContext {
 }
 
 function init(context: IExtensionContextExt): boolean {
-  context.registerAction('savegames-icons', 200, 'transfer', {}, 'Transfer Savegames', () => {
+  context.registerAction('savegames-icons', 200, 'transfer', {}, 'Transfer Save Games', () => {
     context.api.store.dispatch(showTransferDialog(true));
   });
 
@@ -117,7 +117,7 @@ function init(context: IExtensionContextExt): boolean {
   context.registerProfileFeature(
       'local_saves', 'boolean', 'savegame', 'Save Games', 'This profile has its own save games',
       () => gameSupported(selectors.activeGameId(context.api.store.getState())));
-  context.registerAction('profile-actions', 100, 'open-ext', {}, 'Open Savegames', (instanceIds: string[]) => {
+  context.registerAction('profile-actions', 100, 'open-ext', {}, 'Open Save Games', (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
     const hasLocalSaves = util.getSafe(profile, ['features', 'local_saves'], false);

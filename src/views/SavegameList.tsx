@@ -79,7 +79,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       },
       {
         icon: 'recover',
-        title: props.t('Restore savegame\'s plugins'),
+        title: props.t('Restore Save Game Plugins'),
         action: this.restore,
         multiRowAction: false,
       },
