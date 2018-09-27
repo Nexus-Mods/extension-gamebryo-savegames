@@ -21,7 +21,6 @@
   },
   "devDependencies": {
     "@types/i18next": "^8.4.0",
-    "@types/iconv-lite": "^0.0.1",
     "@types/immutability-helper": "^2.6.3",
     "@types/react": "16.0.34",
     "@types/react-bootstrap": "^0.0.37",
@@ -39,7 +38,6 @@
     "electron-rebuild": "^1.7.3",
     "gamebryo-savegame": "Nexus-Mods/node-gamebryo-savegames",
     "i18next": "^3.5.1",
-    "iconv-lite": "^0.4.15",
     "immutability-helper": "^2.8.1",
     "json-loader": "^0.5.4",
     "prop-types": "^15.6.1",
