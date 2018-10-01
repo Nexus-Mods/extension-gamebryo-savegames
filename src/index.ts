@@ -16,8 +16,9 @@ import IniParser, {IniFile, WinapiFormat} from 'vortex-parse-ini';
 const parser = new IniParser(new WinapiFormat());
 let fsWatcher: fs.FSWatcher;
 
-function updateSaveSettings(store: Redux.Store<any>,
+function updateSaveSettings(api: types.IExtensionApi,
                             profileId: string): Promise<string> {
+  const store: Redux.Store<any> = api.store;
   const state: types.IState = store.getState();
   const profile = state.persistent.profiles[profileId];
 
@@ -35,6 +36,7 @@ function updateSaveSettings(store: Redux.Store<any>,
   return fs.ensureDirAsync(fullPath)
     .then(() => setSavePath(store, profile, savePath))
     .then(() => unsetInPrefs(profile))
+    .catch(err => api.showErrorNotification('Failed to apply local savegame directory', err))
     .then(() => fullPath);
 }
 
@@ -170,7 +172,7 @@ function init(context: IExtensionContextExt): boolean {
         return;
       }
       let savesPath: string;
-      updateSaveSettings(store, profileId)
+      updateSaveSettings(context.api, profileId)
         .then(savesPathIn => {
           savesPath = savesPathIn;
           return updateSaves(store, profileId, savesPath);
