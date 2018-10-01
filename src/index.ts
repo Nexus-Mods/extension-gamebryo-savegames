@@ -8,6 +8,7 @@ import SavegameList from './views/SavegameList';
 
 import * as Promise from 'bluebird';
 import { remote } from 'electron';
+import * as I18next from 'i18next';
 import * as path from 'path';
 import * as Redux from 'redux';
 import { fs, log, selectors, types, util } from 'vortex-api';
@@ -18,7 +19,8 @@ let fsWatcher: fs.FSWatcher;
 
 function updateSaveSettings(api: types.IExtensionApi,
                             profileId: string): Promise<string> {
-  const store: Redux.Store<any> = api.store;
+  const t: I18next.TranslationFunction = api.translate;
+  const { store } = api;
   const state: types.IState = store.getState();
   const profile = state.persistent.profiles[profileId];
 
@@ -34,13 +36,17 @@ function updateSaveSettings(api: types.IExtensionApi,
 
   const fullPath = mygamesPath(profile.gameId) + path.sep + savePath;
   return fs.ensureDirAsync(fullPath)
-    .then(() => setSavePath(store, profile, savePath))
-    .then(() => unsetInPrefs(profile))
-    .catch(err => api.showErrorNotification('Failed to apply local savegame directory', err))
+    .then(() => setSavePath(t, store, profile, savePath))
+    .then(() => unsetInPrefs(t, profile))
+    .catch(util.UserCanceled, () => undefined)
+    .catch(err => {
+      api.showErrorNotification('Failed to apply savegame settings', err);
+    })
     .then(() => fullPath);
 }
 
-function setSavePath(store: Redux.Store<any>,
+function setSavePath(t: I18next.TranslationFunction,
+                     store: Redux.Store<any>,
                      profile: types.IProfile,
                      savePath: string): Promise<void> {
   const iniFilePath = iniPath(profile.gameId);
@@ -53,14 +59,15 @@ function setSavePath(store: Redux.Store<any>,
       //   save path without overwriting it
       iniFile.data.General.SLocalSavePath = savePath;
 
-      parser.write(iniFilePath, iniFile);
-
+      return fs.forcePerm(t, () => parser.write(iniFilePath, iniFile));
+    }).then(() => {
       store.dispatch(setSavegamePath(savePath));
       store.dispatch(clearSavegames());
     });
 }
 
-function unsetInPrefs(profile: types.IProfile): Promise<void> {
+function unsetInPrefs(t: I18next.TranslationFunction,
+                      profile: types.IProfile): Promise<void> {
   const prefPath = prefIniPath(profile.gameId);
   if (prefPath === undefined) {
     return Promise.resolve();
@@ -74,7 +81,7 @@ function unsetInPrefs(profile: types.IProfile): Promise<void> {
       }
       iniFile.data.General.SLocalSavePath = undefined;
 
-      parser.write(prefPath, iniFile);
+      return fs.forcePerm(t, () => parser.write(prefPath, iniFile));
     });
 }
 
