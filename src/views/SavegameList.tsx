@@ -356,7 +356,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     const { importSaves, profileId } = this.state;
 
     const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);
-
+    
+    let userCancelled: boolean = false; 
     onShowDialog('question', t('Import Savegames'), {
       message: t('The following files will be imported:\n{{saveIds}}\n'
         + 'Do you want to move them or create a copy?',
@@ -371,6 +372,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     ])
       .then((result: types.IDialogResult) => {
         if (result.action === 'Cancel') {
+          userCancelled = true;
           return;
         }
         const gameId = currentProfile.gameId;
@@ -385,7 +387,13 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         return transferSavegames(fileNames, sourceSavePath, destSavePath, result.action === 'Copy');
       })
       .then((failedCopies: string[]) => {
-        if ((failedCopies === undefined) || (failedCopies.length === 0)) {
+        if (userCancelled) {
+          this.context.api.sendNotification({
+            type: 'info',
+            message: t('Savegame transfer cancelled'),
+            displayMS: 2000,
+          });
+        } else if ((failedCopies === undefined) || (failedCopies.length === 0)) {
           this.context.api.sendNotification({
             type: 'success',
             message: t('{{ count }} savegame imported', { count: fileNames.length }),
