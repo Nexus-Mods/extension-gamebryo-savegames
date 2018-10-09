@@ -8,85 +8,36 @@ import SavegameList from './views/SavegameList';
 
 import * as Promise from 'bluebird';
 import { remote } from 'electron';
-import * as I18next from 'i18next';
 import * as path from 'path';
 import * as Redux from 'redux';
 import { fs, log, selectors, types, util } from 'vortex-api';
-import IniParser, {IniFile, WinapiFormat} from 'vortex-parse-ini';
+import {IniFile} from 'vortex-parse-ini';
 
-const parser = new IniParser(new WinapiFormat());
 let fsWatcher: fs.FSWatcher;
 
-function updateSaveSettings(api: types.IExtensionApi,
-                            profileId: string): Promise<string> {
-  const t: I18next.TranslationFunction = api.translate;
-  const { store } = api;
-  const state: types.IState = store.getState();
-  const profile = state.persistent.profiles[profileId];
-
-  if (profile === undefined) {
-    // how did we get here then???
-    return Promise.reject(new util.ProcessCanceled('no current profile'));
-  }
-
+function profileSavePath(profile: types.IProfile) {
   const localSaves = util.getSafe(profile, ['features', 'local_saves'], false);
-  const savePath = localSaves
-            ? path.join('Saves', profile.id) + path.sep
-            : 'Saves' + path.sep;
-
-  const fullPath = mygamesPath(profile.gameId) + path.sep + savePath;
-  return fs.ensureDirAsync(fullPath)
-    .then(() => setSavePath(t, store, profile, savePath))
-    .then(() => unsetInPrefs(t, profile))
-    .catch(util.UserCanceled, () => undefined)
-    .catch(err => {
-      api.showErrorNotification('Failed to apply savegame settings', err);
-    })
-    .then(() => fullPath);
+  return localSaves
+    ? path.join('Saves', profile.id) + path.sep
+    : 'Saves' + path.sep;
 }
 
-function setSavePath(t: I18next.TranslationFunction,
-                     store: Redux.Store<any>,
-                     profile: types.IProfile,
-                     savePath: string): Promise<void> {
-  const iniFilePath = iniPath(profile.gameId);
-  return parser.read(iniFilePath)
-    .then((iniFile: IniFile<any>) => {
-      if (iniFile.data.General === undefined) {
-        iniFile.data.General = {};
-      }
-      // TODO: we should provide a way for the user to set his own
-      //   save path without overwriting it
-      iniFile.data.General.SLocalSavePath = savePath;
+function applySaveSettings(api: types.IExtensionApi, profile: types.IProfile, iniFile: IniFile<any>) {
+  const savePath = profileSavePath(profile);
 
-      return fs.forcePerm(t, () => parser.write(iniFilePath, iniFile));
-    }).then(() => {
-      store.dispatch(setSavegamePath(savePath));
-      store.dispatch(clearSavegames());
-    });
-}
-
-function unsetInPrefs(t: I18next.TranslationFunction,
-                      profile: types.IProfile): Promise<void> {
-  const prefPath = prefIniPath(profile.gameId);
-  if (prefPath === undefined) {
-    return Promise.resolve();
+  if (iniFile.data.General === undefined) {
+    iniFile.data.General = {};
   }
+  // TODO: we should provide a way for the user to set his own
+  //   save path without overwriting it
+  iniFile.data.General.SLocalSavePath = savePath;
 
-  return parser.read(prefPath)
-    .then((iniFile: IniFile<any>) => {
-      if ((iniFile.data.General === undefined)
-          || (iniFile.data.General.SLocalSavePath === undefined)) {
-        return;
-      }
-      iniFile.data.General.SLocalSavePath = undefined;
-
-      return fs.forcePerm(t, () => parser.write(prefPath, iniFile));
-    });
+  const { store } = api;
+  store.dispatch(setSavegamePath(savePath));
+  store.dispatch(clearSavegames());
 }
 
 function updateSaves(store: Redux.Store<any>,
-                     profileId: string,
                      savesPath: string): Promise<string[]> {
   const newSavegames: ISavegame[] = [];
 
@@ -156,7 +107,7 @@ function init(context: IExtensionContextExt): boolean {
       }
 
       missedUpdate = undefined;
-      return updateSaves(store, profileId, savesPath)
+      return updateSaves(store, savesPath)
         .then((failedReadsInner: string[]) => {
           if (failedReadsInner.length > 0) {
             context.api.showErrorNotification('Some saves couldn\'t be read',
@@ -171,46 +122,37 @@ function init(context: IExtensionContextExt): boolean {
       }
     });
 
-    context.api.events.on('profile-did-change', (profileId: string) => {
-      const profile: types.IProfile =
-          util.getSafe(store.getState(),
-                       ['persistent', 'profiles', profileId], undefined);
-      if ((profile === undefined) || !gameSupported(profile.gameId)) {
-        return;
+    context.api.onAsync('apply-settings', (profile: types.IProfile, filePath: string, ini: IniFile<any>) => {
+      if (gameSupported(profile.gameId) && (filePath.toLowerCase() === iniPath(profile.gameId).toLowerCase())) {
+        applySaveSettings(context.api, profile, ini);
       }
-      let savesPath: string;
-      updateSaveSettings(context.api, profileId)
-        .then(savesPathIn => {
-          savesPath = savesPathIn;
-          return updateSaves(store, profileId, savesPath);
-        })
-        .then((failedReads: string[]) => {
-          if (failedReads.length > 0) {
-            context.api.showErrorNotification('Some saves couldn\'t be read',
-              failedReads.join('\n'), { allowReport: false });
-          }
+      return Promise.resolve();
+    });
 
-          if (fsWatcher !== undefined) {
-            fsWatcher.close();
-          }
-          try {
-            fsWatcher =
-                fs.watch(savesPath, {}, (evt: string, filename: string) => {
-                  update.schedule(undefined, profileId, savesPath);
-                });
-            fsWatcher.on('error', error => {
-              // going by the amount of feedback on this it appears like it's a very common thing to
-              // delete your savegame directory...
-              log('warn', 'failed to watch savegame directory', { savesPath, error });
-              fsWatcher.close();
-              fsWatcher = undefined;
-            });
-          } catch (err) {
-            context.api.showErrorNotification('Can\'t watch saves directory for changes', {
-              path: savesPath, error: err.message,
-            });
-          }
+    context.api.events.on('profile-did-change', (profileId: string) => {
+      const state = context.api.store.getState();
+      const profile = selectors.profileById(state, profileId);
+      const savesPath = path.join(mygamesPath(profile.gameId), profileSavePath(profile));
+      if (fsWatcher !== undefined) {
+        fsWatcher.close();
+      }
+      try {
+        fsWatcher =
+          fs.watch(savesPath, {}, (evt: string, filename: string) => {
+            update.schedule(undefined, profileId, savesPath);
+          });
+        fsWatcher.on('error', error => {
+          // going by the amount of feedback on this it appears like it's a very common thing to
+          // delete your savegame directory...
+          log('warn', 'failed to watch savegame directory', { savesPath, error });
+          fsWatcher.close();
+          fsWatcher = undefined;
         });
+      } catch (err) {
+        context.api.showErrorNotification('Can\'t watch saves directory for changes', {
+          path: savesPath, error: err.message,
+        });
+      }
     });
   });
 

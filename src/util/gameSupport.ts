@@ -50,7 +50,7 @@ const gameSupport: { [key: string]: IGameSupport } = {
   },
   fallout4: {
     mygamesPath: 'Fallout4',
-    iniName: 'Fallout4.ini',
+    iniName: 'Fallout4Custom.ini',
     prefIniName: 'Fallout4Prefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'f4se'));
