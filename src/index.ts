@@ -132,10 +132,16 @@ function init(context: IExtensionContextExt): boolean {
     context.api.events.on('profile-did-change', (profileId: string) => {
       const state = context.api.store.getState();
       const profile = selectors.profileById(state, profileId);
-      const savesPath = path.join(mygamesPath(profile.gameId), profileSavePath(profile));
       if (fsWatcher !== undefined) {
         fsWatcher.close();
+        fsWatcher = undefined;
       }
+
+      if (!gameSupported(profile.gameId)) {
+        return;
+      }
+
+      const savesPath = path.join(mygamesPath(profile.gameId), profileSavePath(profile));
       try {
         fsWatcher =
           fs.watch(savesPath, {}, (evt: string, filename: string) => {
