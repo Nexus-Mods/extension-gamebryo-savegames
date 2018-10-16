@@ -131,32 +131,39 @@ function init(context: IExtensionContextExt): boolean {
 
     context.api.events.on('profile-did-change', (profileId: string) => {
       const state = context.api.store.getState();
-      const profile = selectors.profileById(state, profileId);
       if (fsWatcher !== undefined) {
         fsWatcher.close();
         fsWatcher = undefined;
       }
 
+      if (profileId === undefined) {
+        return;
+      }
+
+      const profile = selectors.profileById(state, profileId);
       if (!gameSupported(profile.gameId)) {
         return;
       }
 
       const savesPath = path.join(mygamesPath(profile.gameId), profileSavePath(profile));
-      try {
-        fsWatcher =
-          fs.watch(savesPath, {}, (evt: string, filename: string) => {
-            update.schedule(undefined, profileId, savesPath);
+      fs.ensureDirAsync(savesPath)
+      .then(() => {
+        try {
+          fsWatcher =
+            fs.watch(savesPath, {}, (evt: string, filename: string) => {
+              update.schedule(undefined, profileId, savesPath);
+            });
+          fsWatcher.on('error', error => {
+            // going by the amount of feedback on this it appears like it's a very common thing to
+            // delete your savegame directory...
+            log('warn', 'failed to watch savegame directory', { savesPath, error });
+            fsWatcher.close();
+            fsWatcher = undefined;
           });
-        fsWatcher.on('error', error => {
-          // going by the amount of feedback on this it appears like it's a very common thing to
-          // delete your savegame directory...
-          log('warn', 'failed to watch savegame directory', { savesPath, error });
-          fsWatcher.close();
-          fsWatcher = undefined;
-        });
-      } catch (err) {
-        context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
-      }
+        } catch (err) {
+          context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
+        }
+      })
     });
   });
 
