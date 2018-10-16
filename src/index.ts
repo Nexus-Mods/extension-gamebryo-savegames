@@ -155,9 +155,7 @@ function init(context: IExtensionContextExt): boolean {
           fsWatcher = undefined;
         });
       } catch (err) {
-        context.api.showErrorNotification('Can\'t watch saves directory for changes', {
-          path: savesPath, error: err.message,
-        });
+        context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
       }
     });
   });
