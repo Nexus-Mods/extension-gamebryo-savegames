@@ -148,9 +148,12 @@ function init(context: IExtensionContextExt): boolean {
       const savesPath = path.join(mygamesPath(profile.gameId), profileSavePath(profile));
       fs.ensureDirAsync(savesPath)
       .then(() => {
+        // always refresh on profile change!
+        update.schedule(undefined, profileId, savesPath);
         try {
           fsWatcher =
             fs.watch(savesPath, {}, (evt: string, filename: string) => {
+              // refresh on file change
               update.schedule(undefined, profileId, savesPath);
             });
           fsWatcher.on('error', error => {
@@ -160,10 +163,14 @@ function init(context: IExtensionContextExt): boolean {
             fsWatcher.close();
             fsWatcher = undefined;
           });
+          return Promise.resolve();
         } catch (err) {
-          context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
+          return Promise.reject(err);
         }
       })
+      .catch(err => {
+        context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
+      });
     });
   });
 
