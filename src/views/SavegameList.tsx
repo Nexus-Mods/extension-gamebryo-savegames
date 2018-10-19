@@ -271,6 +271,10 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
             onShowError, onShowSuccess, saves } = this.props;
     const { discoveredGames, gameMode } = this.props;
 
+    if (saves[instanceId] === undefined) {
+      return;
+    }
+
     const game = util.getGame(gameMode);
     const modPath = game.getModPaths(discoveredGames[gameMode].path)[''];
 
