@@ -86,7 +86,7 @@ function init(context: IExtensionContextExt): boolean {
         : path.join(mygamesPath(profile.gameId), 'Saves');
     fs.ensureDirAsync(profileSavesPath)
       .then(() => (util as any).opn(profileSavesPath))
-      .catch(err => context.api.showErrorNotification('Failed to open savegame directory', err));
+      .catch(err => context.api.showErrorNotification('Failed to open savegame directory', err, { allowReport: (err as any).code !== 'ENOENT' }));
   }, (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
