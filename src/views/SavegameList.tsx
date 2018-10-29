@@ -87,7 +87,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   public render(): JSX.Element {
-    const { t, saves, saveGameActivity, showTransfer } = this.props;
+    const { t, saves, showTransfer } = this.props;
     const { importSaves, profileId } = this.state;
 
     let saveActions = this.savegameActions;
@@ -168,6 +168,10 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   private renderTransfer() {
     const { t, currentProfile, profiles } = this.props;
 
+    if (currentProfile === undefined) {
+      return null;
+    }
+
     const activeHasLocalSaves = util.getSafe(currentProfile, ['features', 'local_saves'], false);
 
     const profileOptions = Object.keys(profiles)
@@ -240,7 +244,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   private loadSaves(selectedProfileId: string): Promise<void> {
-    const { currentProfile, profiles, saves } = this.props;
+    const { currentProfile } = this.props;
 
     if (selectedProfileId === undefined) {
       this.nextState.importSaves = undefined;
