@@ -145,7 +145,10 @@ function init(context: IExtensionContextExt): boolean {
         return;
       }
 
-      const savesPath = path.join(mygamesPath(profile.gameId), profileSavePath(profile));
+      const savePath = profileSavePath(profile);
+      store.dispatch(setSavegamePath(savePath));
+
+      const savesPath = path.join(mygamesPath(profile.gameId), savePath);
       fs.ensureDirAsync(savesPath)
       .then(() => {
         // always refresh on profile change!
@@ -172,6 +175,12 @@ function init(context: IExtensionContextExt): boolean {
         context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
       });
     });
+
+    const profile = selectors.activeProfile(store.getState());
+    if (profile !== undefined) {
+      const savePath = profileSavePath(profile);
+      store.dispatch(setSavegamePath(savePath));
+    }
   });
 
   return true;
