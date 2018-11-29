@@ -67,9 +67,7 @@ class PluginList extends React.Component<IProps, IComponentState> {
     const discovery = discoveredGames[gameMode];
     const game = util.getGame(gameMode);
     fs.readdirAsync(game.getModPaths(discovery.path)[''])
-      .catch(err => (err.code === 'ENOENT')
-        ? Promise.resolve([])
-        : Promise.reject(err))
+      .catch(() => Promise.resolve([]))
       .then((files: string[]) => {
         const plugins = files.filter((fileName: string) => {
           const ext = path.extname(fileName).toLowerCase();
