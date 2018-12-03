@@ -20,7 +20,7 @@ import * as Redux from 'redux';
 import {} from 'redux-thunk';
 import {
   actions, ComponentEx, FlexLayout, fs, IconBar, ITableRowAction,
-  MainPage, selectors, Spinner, Table, tooltip, types, util,
+  MainPage, selectors, Spinner, Table, tooltip, types, util, log
 } from 'vortex-api';
 
 const placeholder: string = '------';
@@ -364,7 +364,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     const { importSaves, profileId } = this.state;
 
     const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);
-    
+
+    let allowErrorReport: boolean = true;
     let userCancelled: boolean = false; 
     onShowDialog('question', t('Import Savegames'), {
       message: t('The following files will be imported:\n{{saveIds}}\n'
@@ -392,7 +393,15 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         const destSavePath = path.join(
           mygamesPath(gameId), 'Saves', activeHasLocalSaves ? currentProfile.id : '');
 
-        return transferSavegames(fileNames, sourceSavePath, destSavePath, result.action === 'Copy');
+        return fs.ensureDirAsync(destSavePath)
+          .then(() => transferSavegames(fileNames, sourceSavePath, destSavePath, result.action === 'Copy'))
+          .catch(err => {
+            allowErrorReport = ['EPERM', 'ENOSPC'].indexOf(err.code) === -1;
+            log(allowErrorReport ? 'error' : 'warn', 'Failed to create save game directory - ', err.code);
+            
+            return [t('Unable to create save game directory: {{dest}}\\ (Please ensure you have enough space and/or full write permissions to the destination folder)', 
+            { replace: { dest: destSavePath } })];
+          })
       })
       .then((failedCopies: string[]) => {
         if (userCancelled) {
@@ -410,7 +419,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         } else {
           this.context.api.showErrorNotification(
             t('Not all savegames could be imported'),
-            failedCopies.join('\n'));
+            failedCopies.join('\n'), { allowReport: allowErrorReport });
         }
       });
   }
