@@ -277,8 +277,6 @@ async-each@^1.0.0:
 async@^2.1.2:
   version "2.6.0"
   resolved "https://registry.yarnpkg.com/async/-/async-2.6.0.tgz#61a29abb6fcc026fea77e56d1c6ec53a795951f4"
-  dependencies:
-    lodash "^4.14.0"
 
 asynckit@^0.4.0:
   version "0.4.0"
@@ -1182,11 +1180,8 @@ error-ex@^1.2.0:
 es5-ext@^0.10.12, es5-ext@^0.10.14, es5-ext@^0.10.30, es5-ext@^0.10.35, es5-ext@^0.10.9, es5-ext@~0.10.14, es5-ext@~0.10.2:
   version "0.10.38"
   resolved "https://registry.yarnpkg.com/es5-ext/-/es5-ext-0.10.38.tgz#fa7d40d65bbc9bb8a67e1d3f9cc656a00530eed3"
-  dependencies:
-    es6-iterator "~2.0.3"
-    es6-symbol "~3.1.1"
 
-es6-iterator@2, es6-iterator@^2.0.1, es6-iterator@~2.0.1, es6-iterator@~2.0.3:
+es6-iterator@2, es6-iterator@^2.0.1, es6-iterator@~2.0.1:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/es6-iterator/-/es6-iterator-2.0.3.tgz#a7de889141a05a94b0854403b2d0a0fbfa98f3b7"
   dependencies:
@@ -1565,8 +1560,8 @@ fstream@^1.0.0, fstream@^1.0.10, fstream@^1.0.2, fstream@~1.0.10:
     rimraf "2"
 
 gamebryo-savegame@Nexus-Mods/node-gamebryo-savegames:
-  version "1.0.7"
-  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/4a8339e19524ae10db192a27637dceff5bade23f"
+  version "1.0.8"
+  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/f759ab90c1c7feb274d1aeaadefe359d732e11a5"
   dependencies:
     autogypi "^0.2.2"
     copyfiles "^1.0.0"
@@ -2702,7 +2697,7 @@ lodash.values@~2.4.1:
   dependencies:
     lodash.keys "~2.4.1"
 
-lodash@^4.14.0, lodash@^4.17.4, lodash@^4.2.1:
+lodash@^4.17.4, lodash@^4.2.1:
   version "4.17.5"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.5.tgz#99a92d65c0272debe8c96b6057bc8fbfa3bed511"
 
