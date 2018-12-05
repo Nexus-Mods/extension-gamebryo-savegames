@@ -34,7 +34,6 @@ function applySaveSettings(api: types.IExtensionApi, profile: types.IProfile, in
 
   const { store } = api;
   store.dispatch(setSavegamePath(savePath));
-  store.dispatch(clearSavegames());
 }
 
 function updateSaves(store: Redux.Store<any>,
@@ -57,6 +56,26 @@ function updateSaves(store: Redux.Store<any>,
   });
 }
 
+let missedUpdate: { profileId: string, savesPath: string };
+
+function genUpdateSavegameHandler(api: types.IExtensionApi) {
+  return (profileId: string, savesPath: string) => {
+    if (!remote.getCurrentWindow().isFocused()) {
+      missedUpdate = { profileId, savesPath };
+      return Promise.resolve();
+    }
+
+    missedUpdate = undefined;
+    return updateSaves(api.store, savesPath)
+      .then((failedReadsInner: string[]) => {
+        if (failedReadsInner.length > 0) {
+          api.showErrorNotification('Some saves couldn\'t be read',
+            failedReadsInner.join('\n'), { allowReport: false });
+        }
+      });
+  }
+}
+
 interface IExtensionContextExt extends types.IExtensionContext {
   registerProfileFeature: (featureId: string, type: string, icon: string, label: string, description: string,
        supported: () => boolean) => void;
@@ -73,10 +92,13 @@ function init(context: IExtensionContextExt): boolean {
     visible: () => gameSupported(selectors.activeGameId(context.api.store.getState())),
   });
 
+  const update = new util.Debouncer(genUpdateSavegameHandler(context.api), 1000);
+
   context.registerReducer(['session', 'saves'], sessionReducer);
   context.registerProfileFeature(
-      'local_saves', 'boolean', 'savegame', 'Save Games', 'This profile has its own save games',
-      () => gameSupported(selectors.activeGameId(context.api.store.getState())));
+    'local_saves', 'boolean', 'savegame', 'Save Games', 'This profile has its own save games',
+    () => gameSupported(selectors.activeGameId(context.api.store.getState())));
+
   context.registerAction('profile-actions', 100, 'open-ext', {}, 'Open Save Games', (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
@@ -85,8 +107,9 @@ function init(context: IExtensionContextExt): boolean {
         ? path.join(mygamesPath(profile.gameId), 'Saves', profile.id)
         : path.join(mygamesPath(profile.gameId), 'Saves');
     fs.ensureDirAsync(profileSavesPath)
-      .then(() => (util as any).opn(profileSavesPath))
-      .catch(err => context.api.showErrorNotification('Failed to open savegame directory', err, { allowReport: (err as any).code !== 'ENOENT' }));
+      .then(() => util.opn(profileSavesPath))
+      .catch(err => context.api.showErrorNotification('Failed to open savegame directory', err,
+                                                      { allowReport: (err as any).code !== 'ENOENT' }));
   }, (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
@@ -95,26 +118,9 @@ function init(context: IExtensionContextExt): boolean {
 
   context.once(() => {
     const store: Redux.Store<any> = context.api.store;
-    let missedUpdate: { profileId: string, savesPath: string };
 
     context.api.setStylesheet('savegame-management',
                               path.join(__dirname, 'savegame_management.scss'));
-
-    const update = new util.Debouncer((profileId: string, savesPath: string) => {
-      if (!remote.getCurrentWindow().isFocused()) {
-        missedUpdate = { profileId, savesPath };
-        return Promise.resolve();
-      }
-
-      missedUpdate = undefined;
-      return updateSaves(store, savesPath)
-        .then((failedReadsInner: string[]) => {
-          if (failedReadsInner.length > 0) {
-            context.api.showErrorNotification('Some saves couldn\'t be read',
-              failedReadsInner.join('\n'), { allowReport: false });
-          }
-        });
-    }, 1000);
 
     remote.getCurrentWindow().on('focus', () => {
       if (missedUpdate !== undefined) {
@@ -122,9 +128,29 @@ function init(context: IExtensionContextExt): boolean {
       }
     });
 
+    context.api.onStateChange(['persistent', 'profiles'],
+                              (oldProfiles: { [profileId: string]: types.IProfile },
+                               newProfiles: { [profileId: string]: types.IProfile }) => {
+      const profile = selectors.activeProfile(store.getState());
+      const localSavesBefore = util.getSafe(oldProfiles, [profile.id, 'features', 'local_saves'], false);
+      const localSavesAfter = util.getSafe(newProfiles, [profile.id, 'features', 'local_saves'], false);
+
+      if (localSavesBefore !== localSavesAfter) {
+        store.dispatch(clearSavegames());
+        const savePath = profileSavePath(profile);
+        const savesPath = path.join(mygamesPath(profile.gameId), savePath);
+        store.dispatch(setSavegamePath(savePath));
+        update.schedule(undefined, profile.id, savesPath);
+      }
+    });
+
     context.api.onAsync('apply-settings', (profile: types.IProfile, filePath: string, ini: IniFile<any>) => {
       if (gameSupported(profile.gameId) && (filePath.toLowerCase() === iniPath(profile.gameId).toLowerCase())) {
         applySaveSettings(context.api, profile, ini);
+        store.dispatch(clearSavegames());
+        const savePath = profileSavePath(profile);
+        const savesPath = path.join(mygamesPath(profile.gameId), savePath);
+        update.schedule(undefined, profile.id, savesPath);
       }
       return Promise.resolve();
     });
