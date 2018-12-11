@@ -341,7 +341,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
                   if (err.code === 'ENOENT') {
                     return Promise.resolve();
                   } else if (err.code === 'EPERM') {
-                    onShowError('Failed to delete Savegame',
+                    onShowError('Failed to delete savegame',
                                 'The file is write protected.',
                                 undefined, false);
                     return Promise.resolve();
@@ -352,7 +352,11 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
                   onRemoveSavegame(id);
                 }))
             : Promise.reject(new Error('invalid savegame id')))
-            .then(() => undefined);
+            .then(() => undefined)
+            .catch(err => {
+              onShowError('Failed to delete savegame(s), this is probably a permission problem',
+                          err, undefined, false);
+            });
         } else {
           return Promise.resolve();
         }
