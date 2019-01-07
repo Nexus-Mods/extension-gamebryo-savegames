@@ -7,7 +7,6 @@
   "scripts": {
     "webpack": "node ./node_modules/webpack/bin/webpack --config webpack.config.js --display-error-details --progress --profile --color",
     "clear": "rm-local-modules",
-    "postinstall": "electron-rebuild -w gamebryo-savegame -t dev,prod",
     "build": "npm run webpack && copyfiles -f ./node_modules/gamebryo-savegame/build/Release/nbind.node ./dist/savegamelib && copyfiles -f ./node_modules/gamebryo-savegame/dist/liblz4.dll ./dist/savegamelib && copyfiles -f src/stylesheets/savegame_management.scss dist && extractInfo",
     "installDev": "copyfiles -u 1 dist/**/* ../../out/bundledPlugins/gamebryo-savegame-management",
     "buildDev": "npm run build && npm run installDev"
@@ -35,7 +34,6 @@
     "babel-polyfill": "^6.13.0",
     "bluebird": "^3.4.6",
     "copyfiles": "^1.0.0",
-    "electron-rebuild": "^1.7.3",
     "gamebryo-savegame": "Nexus-Mods/node-gamebryo-savegames",
     "i18next": "^3.5.1",
     "immutability-helper": "^2.8.1",
