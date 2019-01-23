@@ -134,8 +134,8 @@ function init(context: IExtensionContextExt): boolean {
     };
 
     remote.getCurrentWindow().on('focus', onFocus);
-
-    remote.getCurrentWindow().once('close', () => {
+    
+    window.addEventListener('beforeunload', () => {
       remote.getCurrentWindow().removeListener('focus', onFocus);
     });
 
