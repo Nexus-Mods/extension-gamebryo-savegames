@@ -33,7 +33,7 @@ interface IConnectedProps {
   showTransfer: boolean;
   gameMode: string;
   discoveredGames: { [id: string]: types.IDiscoveryResult };
-  saveGameActivity: string;
+  activity: string[];
 }
 
 interface IActionProps {
@@ -87,8 +87,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   public render(): JSX.Element {
-    const { t, saves, showTransfer } = this.props;
-    const { importSaves, profileId } = this.state;
+    const { t, activity, showTransfer } = this.props;
 
     let saveActions = this.savegameActions;
 
@@ -112,6 +111,22 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       );
     }
 
+   return (
+      <MainPage>
+        <MainPage.Header>
+          {header}
+        </MainPage.Header>
+        <MainPage.Body>
+          {activity.length > 0 ? this.renderBusy() : this.renderContent(saveActions)}
+        </MainPage.Body>
+      </MainPage>
+    );
+  }
+
+  private renderContent(saveActions: ITableRowAction[]) {
+    const { t, saves, showTransfer } = this.props;
+    const { importSaves, profileId } = this.state;
+
     let content = null;
     if (!showTransfer || (importSaves !== undefined)) {
       const PanelX: any = Panel;
@@ -134,29 +149,21 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         ? <h4>{t('Please select a profile to import from')}</h4>
         : <Spinner />;
     }
-
-    return (
-      <MainPage>
-        <MainPage.Header>
-          {header}
-        </MainPage.Header>
-        <MainPage.Body>
-          {this.renderSavegameActivity()}
-          {content}
-        </MainPage.Body>
-      </MainPage>
-    );
+    return content;
   }
 
-  private renderSavegameActivity() {
-    const { t, saveGameActivity } = this.props;
-    if (saveGameActivity !== undefined) {
+  private renderBusy() {
+    const { t, activity } = this.props;
+    if (activity.length > 0) {
+      const PanelX: any = Panel;
       return (
-        <FlexLayout.Fixed>
-          <div>
-            <Spinner />
-            {t(saveGameActivity)}
-          </div>
+        <FlexLayout.Fixed className='savegames-busy-panel'>
+          <Panel>
+            <PanelX.Body>
+              <Spinner />
+              {t(activity[0])}
+            </PanelX.Body>
+          </Panel>
         </FlexLayout.Fixed>
       );
     } else {
@@ -439,7 +446,7 @@ function mapStateToProps(state: any): IConnectedProps {
     showTransfer: state.session.saves.showDialog,
     discoveredGames: state.settings.gameMode.discovered,
     gameMode: selectors.activeGameId(state),
-    saveGameActivity: state.session.saves.saveGameActivity,
+    activity: state.session.base.activity['savegames'],
   };
 }
 

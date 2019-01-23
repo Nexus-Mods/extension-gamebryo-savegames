@@ -17,19 +17,12 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
   private screenshotCanvas: HTMLCanvasElement;
 
   public componentDidMount() {
-    const ctx: CanvasRenderingContext2D = this.screenshotCanvas.getContext('2d');
-    const imgData: ImageData = ctx.createImageData(
-      Math.max(this.screenshotCanvas.width, 1), Math.max(this.screenshotCanvas.height, 1));
+    this.updateImage();
+  }
 
-    try {
-      const sg = new savegameLib.GamebryoSaveGame(this.props.save.filePath);
-      sg.screenshot(imgData.data);
-      createImageBitmap(imgData)
-        .then((bitmap) => {
-          ctx.drawImage(bitmap, 0, 0);
-        });
-    } catch (err) {
-      log('warn', 'failed to read savegame screenshot', { fileName: this.props.save.filePath, error: err.message });
+  public componentWillReceiveProps(newProps: ICanvasProps) {
+    if (this.props.save !== newProps.save) {
+      this.updateImage();
     }
   }
 
@@ -51,6 +44,28 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
   private refCanvas = (ref) => {
     this.screenshotCanvas = ref;
   }
+
+  private updateImage() {
+    const ctx: CanvasRenderingContext2D = this.screenshotCanvas.getContext('2d');
+    const width = Math.max(this.screenshotCanvas.width, 1);
+    const height = Math.max(this.screenshotCanvas.height, 1);
+    const buffer: Uint8ClampedArray = this.props.save.attributes.screenshotData;
+    // this is supposed to work but it crashes the process - maybe a bug in the chrome
+    // version bundled with electron 2.0.16?
+    // const imgData: ImageData = new ImageData(buffer, width, height);
+    const imgData: ImageData = ctx.createImageData(width, height);
+    imgData.data.set(buffer);
+
+    try {
+      createImageBitmap(imgData)
+        .then((bitmap) => {
+          ctx.drawImage(bitmap, 0, 0);
+        });
+    } catch (err) {
+      log('warn', 'failed to read savegame screenshot', { fileName: this.props.save.filePath, error: err.message });
+    }
+  }
+  
 }
 
 export default ScreenshotCanvas;

@@ -16,3 +16,17 @@
     width: 50%;
   }
 }
+
+.savegames-busy-panel {
+  height: 100%;
+  .panel-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    svg {
+      width: 3em;
+      height: 3em;
+    }
+  }
+}

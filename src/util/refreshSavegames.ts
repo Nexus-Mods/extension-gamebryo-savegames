@@ -56,28 +56,34 @@ function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void
                       tries: number = 2): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     try {
-      const sg = new savegameLib.GamebryoSaveGame(filePath);
-
-      const save: ISavegame = {
-        id: path.basename(filePath),
-        filePath,
-        attributes: {
-          id: sg.saveNumber,
-          name: sg.characterName,
-          level: sg.characterLevel,
-          filename: path.basename(filePath),
-          location: sg.location,
-          plugins: sg.plugins,
-          screenshot: {
-            width: sg.screenshotSize.width,
-            height: sg.screenshotSize.height,
+      savegameLib.create(filePath, (err, sg) => {
+        if (err !== null) {
+          return reject(err);
+        }
+        let arr: Uint8ClampedArray = sg.screenshot;
+        const save: ISavegame = {
+          id: path.basename(filePath),
+          filePath,
+          attributes: {
+            id: sg.saveNumber,
+            name: sg.characterName,
+            level: sg.characterLevel,
+            filename: path.basename(filePath),
+            location: sg.location,
+            plugins: sg.plugins,
+            screenshot: {
+              width: sg.screenshotSize.width,
+              height: sg.screenshotSize.height,
+            },
+            screenshotData: new Uint8ClampedArray(sg.screenshot),
+            isToggleable: true,
+            creationtime: timestampFormat(sg.creationTime),
           },
-          isToggleable: true,
-          creationtime: timestampFormat(sg.creationTime),
-        },
-      };
-      onAddSavegame(save);
-      resolve();
+        };
+
+        onAddSavegame(save);
+        resolve();
+      });
     } catch (err) {
       if (err.message.startsWith('failed to open')) {
         // error messages from the lib aren't very enlightening unfortunately.

@@ -10,7 +10,7 @@ import * as Promise from 'bluebird';
 import { remote } from 'electron';
 import * as path from 'path';
 import * as Redux from 'redux';
-import { fs, log, selectors, types, util } from 'vortex-api';
+import { fs, log, selectors, types, util, actions } from 'vortex-api';
 import {IniFile} from 'vortex-parse-ini';
 
 let fsWatcher: fs.FSWatcher;
@@ -65,6 +65,8 @@ function genUpdateSavegameHandler(api: types.IExtensionApi) {
       return Promise.resolve();
     }
 
+    api.store.dispatch(actions.startActivity('savegames', 'Loading'));
+
     missedUpdate = undefined;
     return updateSaves(api.store, savesPath)
       .then((failedReadsInner: string[]) => {
@@ -72,6 +74,9 @@ function genUpdateSavegameHandler(api: types.IExtensionApi) {
           api.showErrorNotification('Some saves couldn\'t be read',
             failedReadsInner.join('\n'), { allowReport: false });
         }
+      })
+      .finally(() => {
+        api.store.dispatch(actions.stopActivity('savegames', 'Loading'));
       });
   }
 }
@@ -122,10 +127,16 @@ function init(context: IExtensionContextExt): boolean {
     context.api.setStylesheet('savegame-management',
                               path.join(__dirname, 'savegame_management.scss'));
 
-    remote.getCurrentWindow().on('focus', () => {
+    const onFocus = () => {
       if (missedUpdate !== undefined) {
         update.schedule(undefined, missedUpdate.profileId, missedUpdate.savesPath);
       }
+    };
+
+    remote.getCurrentWindow().on('focus', onFocus);
+
+    remote.getCurrentWindow().once('close', () => {
+      remote.getCurrentWindow().removeListener('focus', onFocus);
     });
 
     context.api.onStateChange(['persistent', 'profiles'],
