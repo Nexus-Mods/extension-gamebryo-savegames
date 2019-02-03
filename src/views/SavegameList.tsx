@@ -1,14 +1,11 @@
 import { removeSavegame, showTransferDialog } from '../actions/session';
 import { ISavegame } from '../types/ISavegame';
 import { mygamesPath, saveFiles } from '../util/gameSupport';
-import refreshSavegames from '../util/refreshSavegames';
+import { refreshSavegames } from '../util/refreshSavegames';
 import restoreSavegamePlugins, { MissingPluginsError } from '../util/restoreSavegamePlugins';
 import transferSavegames from '../util/transferSavegames';
 
-import {
-  CHARACTER_NAME, CREATION_TIME, FILENAME, LEVEL, LOCATION, PLUGINS,
-  SAVEGAME_ID, SCREENSHOT,
-} from '../savegameAttributes';
+import getSavegameAttributes from '../savegameAttributes';
 
 import * as Promise from 'bluebird';
 import * as path from 'path';
@@ -63,6 +60,7 @@ type Props = IConnectedProps & IActionProps;
  */
 class SavegameList extends ComponentEx<Props, IComponentState> {
   private savegameActions: ITableRowAction[];
+  private mAttributes: types.ITableAttribute[] = [];
 
   constructor(props) {
     super(props);
@@ -84,6 +82,10 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         multiRowAction: false,
       },
     ];
+  }
+
+  public componentWillMount() {
+    this.mAttributes = getSavegameAttributes(this.context.api);
   }
 
   public render(): JSX.Element {
@@ -137,9 +139,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
               tableId='savegames'
               data={showTransfer ? importSaves : saves}
               actions={saveActions}
-              staticElements={[
-                SCREENSHOT, SAVEGAME_ID, CHARACTER_NAME, LEVEL,
-                LOCATION, FILENAME, CREATION_TIME, PLUGINS]}
+              staticElements={this.mAttributes}
             />
           </PanelX.Body>
         </Panel>

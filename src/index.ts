@@ -3,7 +3,7 @@ import { clearSavegames, setSavegamePath,
 import { sessionReducer } from './reducers/session';
 import { ISavegame } from './types/ISavegame';
 import {gameSupported, iniPath, mygamesPath, prefIniPath} from './util/gameSupport';
-import refreshSavegames from './util/refreshSavegames';
+import { refreshSavegames } from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';
 
 import * as Promise from 'bluebird';

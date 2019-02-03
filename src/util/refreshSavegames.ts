@@ -1,4 +1,5 @@
 import { ISavegame } from '../types/ISavegame';
+import { buf2hex } from './buf2hex';
 
 import * as Promise from 'bluebird';
 import savegameLibInit from 'gamebryo-savegame';
@@ -22,8 +23,8 @@ class Dimensions {
  * @param {string} savesPath
  * @param {(save: ISavegame) => void} onAddSavegame
  */
-function refreshSavegames(savesPath: string,
-                          onAddSavegame: (save: ISavegame) => void): Promise<string[]> {
+export function refreshSavegames(savesPath: string,
+                                 onAddSavegame: (save: ISavegame) => void): Promise<string[]> {
   const failedReads: string[] = [];
   return fs.readdirAsync(savesPath)
     .catch(err => (err.code === 'ENOENT')
@@ -34,15 +35,8 @@ function refreshSavegames(savesPath: string,
     .then((savegameNames: string[]) =>
       Promise.each(savegameNames, (savegameName: string) => {
         const savegamePath = path.join(savesPath, savegameName);
-        return loadSaveGame(savegamePath, onAddSavegame)
-        .catch(err => (err.code === 'EBUSY')
-            // if the file is busy now, there is a good chance it won't be in a moment
-            ? util.delayed(500).then(() => loadSaveGame(savegamePath, onAddSavegame))
-            : Promise.reject(err))
-        .catch(err => {
-          failedReads.push(`${savegameName} - ${err.message}`);
-          log('warn', 'Failed to parse savegame', { savegamePath, error: err.message });
-        });
+        const fileName = path.basename(savegamePath);
+        onAddSavegame({ id: fileName, filePath: savegamePath, attributes: { name: fileName } });
       }))
     .then(() => Promise.resolve(failedReads));
 }
@@ -52,15 +46,14 @@ function timestampFormat(timestamp: number) {
   return date;
 }
 
-function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void,
-                      tries: number = 2): Promise<void> {
+export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void,
+                             tries: number = 2): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     try {
       savegameLib.create(filePath, (err, sg) => {
         if (err !== null) {
           return reject(err);
         }
-        let arr: Uint8ClampedArray = sg.screenshot;
         const save: ISavegame = {
           id: path.basename(filePath),
           filePath,
@@ -75,7 +68,7 @@ function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void
               width: sg.screenshotSize.width,
               height: sg.screenshotSize.height,
             },
-            screenshotData: new Uint8ClampedArray(sg.screenshot),
+            screenshotData: buf2hex(sg.screenshot),
             isToggleable: true,
             creationtime: timestampFormat(sg.creationTime),
           },
@@ -98,7 +91,8 @@ function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void
         reject(err);
       }
     }
-  });
+  })
+    .catch(err => (tries > 0)
+      ? loadSaveGame(filePath, onAddSavegame, tries - 1)
+      : Promise.reject(err));
 }
-
-export default refreshSavegames;

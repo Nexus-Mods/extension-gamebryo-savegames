@@ -1,14 +1,13 @@
 import { createAction } from 'redux-act';
-
-import { SavegameState } from '../types/ISavegame';
+import { ISavegame } from '../types/ISavegame';
 
 export const setSavegames = createAction('SET_SAVEGAMES');
 
-export const setSavegameState = createAction('SET_SAVEGAME_STATE',
-  (id: string, savegameState: SavegameState) => ({ id, savegameState }));
-
 export const setSavegameAttribute = createAction('SET_SAVEGAME_ATTRIBUTE',
   (id: string, attribute: string, value: any) => ({ id, attribute, value }));
+
+export const updateSavegame = createAction('UPDATE_SAVEGAME',
+  (id: string, saveGame: ISavegame) => ({ id, saveGame }));
 
 export const clearSavegames = createAction('CLEAR_SAVEGAMES');
 

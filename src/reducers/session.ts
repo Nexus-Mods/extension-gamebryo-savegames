@@ -13,13 +13,13 @@ export const sessionReducer: types.IReducerSpec = {
       util.setSafe(state, ['saves'], payload),
     [actions.removeSavegame as any]: (state, payload) =>
       util.deleteOrNop(state, ['saves', payload]),
-    [actions.setSavegameState as any]: (state, payload) => {
-      const { id, savegameState } = payload;
-      return update(state, { saves: { [id]: { state: { $set: savegameState } } } });
-    },
     [actions.setSavegameAttribute as any]: (state, payload) => {
       const { id, attribute, value } = payload;
       return update(state, { saves: { [id]: { attributes: { [attribute]: { $set: value } } } } });
+    },
+    [actions.updateSavegame as any]: (state, payload) => {
+      const { id, saveGame } = payload;
+      return util.setSafe(state, ['saves', id], saveGame);
     },
     [actions.showTransferDialog as any]: (state, payload) =>
       util.setSafe(state, ['showDialog'], payload),

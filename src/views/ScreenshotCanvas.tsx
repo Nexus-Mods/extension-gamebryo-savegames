@@ -3,6 +3,7 @@ import { ISavegame } from '../types/ISavegame';
 import savegameLibInit, { Dimensions } from 'gamebryo-savegame';
 import * as React from 'react';
 import { log } from 'vortex-api';
+import { hex2buf } from '../util/buf2hex';
 
 const savegameLib = savegameLibInit('savegameLib');
 
@@ -14,7 +15,7 @@ interface ICanvasProps {
 declare const createImageBitmap: (imgData: ImageData) => Promise<any>;
 
 class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
-  private screenshotCanvas: HTMLCanvasElement;
+  private screenshotCanvas: HTMLCanvasElement = null;
 
   public componentDidMount() {
     this.updateImage();
@@ -28,7 +29,8 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
 
   public render(): JSX.Element {
     const { save } = this.props;
-    if (save === undefined) {
+    if ((save === undefined)
+        || (save.attributes['screenshot'] === undefined)) {
       return null;
     }
     const dim: Dimensions = (save.attributes as any).screenshot;
@@ -46,10 +48,13 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
   }
 
   private updateImage() {
+    if (this.screenshotCanvas === null) {
+      return;
+    }
     const ctx: CanvasRenderingContext2D = this.screenshotCanvas.getContext('2d');
     const width = Math.max(this.screenshotCanvas.width, 1);
     const height = Math.max(this.screenshotCanvas.height, 1);
-    const buffer: Uint8ClampedArray = this.props.save.attributes.screenshotData;
+    const buffer: Uint8ClampedArray = hex2buf(this.props.save.attributes.screenshotData);
     // this is supposed to work but it crashes the process - maybe a bug in the chrome
     // version bundled with electron 2.0.16?
     // const imgData: ImageData = new ImageData(buffer, width, height);
