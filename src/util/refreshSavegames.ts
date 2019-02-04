@@ -1,19 +1,34 @@
 import { ISavegame } from '../types/ISavegame';
-import { buf2hex } from './buf2hex';
 
 import * as Promise from 'bluebird';
 import savegameLibInit from 'gamebryo-savegame';
 import * as path from 'path';
-import { fs, log, util } from 'vortex-api';
+import turbowalk from 'turbowalk';
+import { fs } from 'vortex-api';
 
 const savegameLib = savegameLibInit('savegameLib');
 
-class Dimensions {
-  public width: number;
-  public height: number;
-  constructor(width: number, height: number) {
-    this.width = width;
-    this.height = height;
+// TODO essentially disables cache clearing since we can as many screenshots as the max of savegames we will display.
+// The reason being that the thumbnails on the list weren't rerendered after having been removed from the cache and
+// then reloaded and I don't have the time to investigate that.
+const MIN_CACHE_SIZE = 200;
+const MAX_CACHE_SIZE = MIN_CACHE_SIZE + 20;
+export const MAX_SAVEGAMES = 200;
+
+const screenshotCache: {
+  [id: string]: {
+    data: Uint8ClampedArray,
+    lastAccess: number,
+  }
+} = {};
+
+function maintainCache() {
+  const ids = Object.keys(screenshotCache);
+  if (ids.length > MAX_CACHE_SIZE) {
+    ids
+      .sort((lhs, rhs) => screenshotCache[lhs].lastAccess - screenshotCache[rhs].lastAccess)
+      .slice(0, ids.length - MIN_CACHE_SIZE)
+      .forEach(id => delete screenshotCache[id]);
   }
 }
 
@@ -24,21 +39,30 @@ class Dimensions {
  * @param {(save: ISavegame) => void} onAddSavegame
  */
 export function refreshSavegames(savesPath: string,
-                                 onAddSavegame: (save: ISavegame) => void): Promise<string[]> {
+                                 onAddSavegame: (save: ISavegame) => void,
+                                 allowTruncate: boolean): Promise<{ failedReads: string[], truncated: boolean }> {
   const failedReads: string[] = [];
-  return fs.readdirAsync(savesPath)
+  let truncated = false;
+  let saves = [];
+  return turbowalk(savesPath, entries => {
+    saves.push(...entries
+      .filter(entry => ['.ess', '.fos'].indexOf(path.extname(entry.filePath).toLowerCase()) !== -1));
+    })
     .catch(err => (err.code === 'ENOENT')
-      ? Promise.resolve([])
+      ? Promise.resolve()
       : Promise.reject(err))
-    .filter((savePath: string) =>
-      ['.ess', '.fos'].indexOf(path.extname(savePath).toLowerCase()) !== -1)
-    .then((savegameNames: string[]) =>
-      Promise.each(savegameNames, (savegameName: string) => {
-        const savegamePath = path.join(savesPath, savegameName);
-        const fileName = path.basename(savegamePath);
-        onAddSavegame({ id: fileName, filePath: savegamePath, attributes: { name: fileName } });
-      }))
-    .then(() => Promise.resolve(failedReads));
+    .then(() => {
+      saves = saves.sort((lhs, rhs) => rhs.mtime - lhs.mtime);
+      if (allowTruncate && (saves.length > MAX_SAVEGAMES)) {
+        truncated = true;
+        saves = saves.slice(0, MAX_SAVEGAMES);
+      }
+      return Promise.map(saves, iter => loadSaveGame(iter.filePath, onAddSavegame, false)
+        .catch(err => {
+          failedReads.push(err.message);
+        }));
+    })
+    .then(() => ({ failedReads, truncated }));
 }
 
 function timestampFormat(timestamp: number) {
@@ -46,16 +70,32 @@ function timestampFormat(timestamp: number) {
   return date;
 }
 
+export function getScreenshot(id: string): Uint8ClampedArray {
+  if (screenshotCache[id] !== undefined) {
+    screenshotCache[id].lastAccess = Date.now();
+    return screenshotCache[id].data;
+  } else {
+    return undefined;
+  }
+}
+
 export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void,
-                             tries: number = 2): Promise<void> {
+                             full: boolean, tries: number = 2): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     try {
       savegameLib.create(filePath, (err, sg) => {
         if (err !== null) {
           return reject(err);
         }
+        const id = path.basename(filePath);
+        if (full) {
+          screenshotCache[id] = {
+            lastAccess: Date.now(),
+            data: new Uint8ClampedArray(sg.screenshot)
+          };
+        }
         const save: ISavegame = {
-          id: path.basename(filePath),
+          id,
           filePath,
           attributes: {
             id: sg.saveNumber,
@@ -64,12 +104,11 @@ export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) 
             filename: path.basename(filePath),
             location: sg.location,
             plugins: sg.plugins,
-            screenshot: {
+            screenshot: full ? {
               width: sg.screenshotSize.width,
               height: sg.screenshotSize.height,
-            },
-            screenshotData: buf2hex(sg.screenshot),
-            isToggleable: true,
+            } : undefined,
+            loadedTime: Date.now(),
             creationtime: timestampFormat(sg.creationTime),
           },
         };
@@ -92,7 +131,8 @@ export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) 
       }
     }
   })
+    .then(() => maintainCache())
     .catch(err => (tries > 0)
-      ? loadSaveGame(filePath, onAddSavegame, tries - 1)
+      ? loadSaveGame(filePath, onAddSavegame, full, tries - 1)
       : Promise.reject(err));
 }

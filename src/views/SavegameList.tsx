@@ -1,7 +1,7 @@
 import { removeSavegame, showTransferDialog } from '../actions/session';
 import { ISavegame } from '../types/ISavegame';
 import { mygamesPath, saveFiles } from '../util/gameSupport';
-import { refreshSavegames } from '../util/refreshSavegames';
+import { refreshSavegames, MAX_SAVEGAMES } from '../util/refreshSavegames';
 import restoreSavegamePlugins, { MissingPluginsError } from '../util/restoreSavegamePlugins';
 import transferSavegames from '../util/transferSavegames';
 
@@ -10,7 +10,7 @@ import getSavegameAttributes from '../savegameAttributes';
 import * as Promise from 'bluebird';
 import * as path from 'path';
 import * as React from 'react';
-import { FormControl, Panel } from 'react-bootstrap';
+import { FormControl, Panel, Alert } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
@@ -27,6 +27,7 @@ interface IConnectedProps {
   profiles: { [id: string]: types.IProfile };
   saves: { [saveId: string]: ISavegame };
   savesPath: string;
+  savesTruncated: boolean;
   showTransfer: boolean;
   gameMode: string;
   discoveredGames: { [id: string]: types.IDiscoveryResult };
@@ -102,9 +103,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         action: this.importSaves,
       }], this.savegameActions);
     } else {
-      const IconBarX: any = IconBar;
       header = (
-        <IconBarX
+        <IconBar
           group='savegames-icons'
           orientation='vertical'
           className='menubar'
@@ -126,7 +126,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   private renderContent(saveActions: ITableRowAction[]) {
-    const { t, saves, showTransfer } = this.props;
+    const { t, saves, savesTruncated, showTransfer } = this.props;
     const { importSaves, profileId } = this.state;
 
     let content = null;
@@ -135,12 +135,21 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       content = (
         <Panel>
           <PanelX.Body>
-            <Table
-              tableId='savegames'
-              data={showTransfer ? importSaves : saves}
-              actions={saveActions}
-              staticElements={this.mAttributes}
-            />
+            <FlexLayout type='column'>
+              {savesTruncated && !showTransfer ? (<FlexLayout.Fixed>
+                <Alert>
+                  {t('For performance reasons only the {{count}} most recent save games were loaded.', { replace: { count: MAX_SAVEGAMES } })}
+                </Alert>
+              </FlexLayout.Fixed>) : null}
+              <FlexLayout.Flex>
+                <Table
+                  tableId='savegames'
+                  data={showTransfer ? importSaves : saves}
+                  actions={saveActions}
+                  staticElements={this.mAttributes}
+                />
+              </FlexLayout.Flex>
+            </FlexLayout>
           </PanelX.Body>
         </Panel>
       );
@@ -267,7 +276,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
     return refreshSavegames(savesPath, (save: ISavegame): void => {
       newSavegames.push(save);
-    })
+    }, false)
       .then(() => {
         const savesDict: { [id: string]: ISavegame } = {};
         newSavegames.forEach(save => savesDict[save.id] = save);
@@ -436,6 +445,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 }
 
+const emptyArray = [];
+
 function mapStateToProps(state: any): IConnectedProps {
   const currentProfile = selectors.activeProfile(state);
   return {
@@ -443,10 +454,11 @@ function mapStateToProps(state: any): IConnectedProps {
     profiles: state.persistent.profiles,
     saves: state.session.saves.saves,
     savesPath: state.session.saves.savegamePath,
+    savesTruncated: state.session.saves.savesTruncated,
     showTransfer: state.session.saves.showDialog,
     discoveredGames: state.settings.gameMode.discovered,
     gameMode: selectors.activeGameId(state),
-    activity: state.session.base.activity['savegames'],
+    activity: state.session.base.activity['savegames'] || emptyArray,
   };
 }
 

@@ -1,6 +1,6 @@
 import { ISavegame } from './types/ISavegame';
 import CharacterFilter from './util/CharacterFilter';
-import { loadSaveGame } from './util/refreshSavegames';
+import { loadSaveGame, getScreenshot } from './util/refreshSavegames';
 import PluginList from './views/PluginList';
 import ScreenshotCanvas from './views/ScreenshotCanvas';
 
@@ -14,22 +14,6 @@ let collator: Intl.Collator;
 
 function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
   const loading: Set<string> = new Set();
-  const ensureLoaded = (savegame: ISavegame, attrId: string, fallback: () => any) => {
-    if (savegame.attributes.screenshot === undefined) {
-      if (!loading.has(savegame.id)) {
-        loading.add(savegame.id);
-        loadSaveGame(savegame.filePath, (save: ISavegame) => {
-          api.store.dispatch(updateSavegame(save.id, save));
-        })
-          .then(() => {
-            loading.delete(savegame.id);
-          });
-      }
-      return fallback();
-    } else {
-      return savegame.attributes[attrId];
-    }
-  }
 
   return [
     {
@@ -38,12 +22,27 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
       description: 'Savegame screenshot',
       icon: ' file-picture-o',
       customRenderer: (savegame: ISavegame) => {
-        console.log('render screenshot');
-        return <ScreenshotCanvas save={savegame} />;
+        // customRenderer will only be called when the screenshot actually comes into view so we use it
+        // as a trigger to get more detailed info from the file
+        if ((savegame.attributes.screenshot === undefined)
+            || (getScreenshot(savegame.id) === undefined)) {
+          if (!loading.has(savegame.id)) {
+            loading.add(savegame.id);
+            loadSaveGame(savegame.filePath, (save: ISavegame) => {
+              api.store.dispatch(updateSavegame(save.id, save));
+            }, true)
+              .then(() => {
+                loading.delete(savegame.id);
+              });
+          }
+          return null;
+        } else {
+          return <ScreenshotCanvas save={savegame} />;
+        }
       },
-      calc: (savegame: ISavegame) => ensureLoaded(savegame, 'screenshot', () => null),
+      calc: (savegame: ISavegame) => savegame.attributes['screenshot'],
       placement: 'both',
-      isToggleable: false,
+      isToggleable: true,
       edit: {},
     },
     {
@@ -51,7 +50,7 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
       name: 'Save Game ID',
       description: 'Id of the savegame',
       icon: 'id-badge',
-      calc: (savegame: ISavegame) => ensureLoaded(savegame, 'id', () => ''),
+      calc: (savegame: ISavegame) => savegame.attributes['id'],
       placement: 'both',
       isToggleable: true,
       isSortable: true,
@@ -63,7 +62,7 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
       name: 'Character Name',
       description: 'Name of the character',
       icon: 'quote-left',
-      calc: (savegame: ISavegame) => ensureLoaded(savegame, 'name', () => ''),
+      calc: (savegame: ISavegame) => savegame.attributes['name'],
       placement: 'both',
       isToggleable: true,
       isSortable: true,
@@ -82,7 +81,7 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
       name: 'Character Level',
       description: 'Level of the character',
       icon: 'level-up',
-      calc: (savegame: ISavegame) => ensureLoaded(savegame, 'level', () => 0),
+      calc: (savegame: ISavegame) => savegame.attributes['level'],
       placement: 'both',
       isToggleable: true,
       isSortable: true,
@@ -95,7 +94,7 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
       name: 'Ingame Location',
       description: 'Location during the save',
       icon: 'map-marker',
-      calc: (savegame: ISavegame) => ensureLoaded(savegame, 'location', () => ''),
+      calc: (savegame: ISavegame) => savegame.attributes['location'],
       placement: 'both',
       isToggleable: true,
       isSortable: true,
@@ -114,7 +113,7 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
       name: 'Filename',
       description: 'Name of the file',
       icon: 'file-picture-o',
-      calc: (savegame: ISavegame) => ensureLoaded(savegame, 'filename', () => ''),
+      calc: (savegame: ISavegame) => savegame.attributes['filename'],
       placement: 'both',
       isToggleable: true,
       isSortable: true,
@@ -132,14 +131,14 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
           const lang = util.getCurrentLanguage();
           return (
             <p>
-              {new Date(ensureLoaded(savegame, 'creationtime', () => 0)).toLocaleString(lang)}
+              {new Date(savegame.attributes['creationtime']).toLocaleString(lang)}
             </p>
           );
         } else {
-          return <p>{util.relativeTime(new Date(ensureLoaded(savegame, 'creationtime', () => 0)), t)}</p>;
+          return <p>{util.relativeTime(new Date(savegame.attributes['creationtime']), t)}</p>;
         }
       },
-      calc: (savegame: ISavegame) => new Date(ensureLoaded(savegame, 'creationtime', () => '')),
+      calc: (savegame: ISavegame) => new Date(savegame.attributes['creationtime']),
       placement: 'both',
       isToggleable: true,
       isSortable: true,
@@ -152,8 +151,8 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
       description: 'Savegame plugins',
       icon: 'file-picture-o',
       customRenderer: (savegame: ISavegame) =>
-        <PluginList plugins={ensureLoaded(savegame, 'plugins', () => [])} />,
-      calc: (savegame: ISavegame) => ensureLoaded(savegame, 'plugins', () => []),
+        <PluginList plugins={savegame.attributes['plugins']} />,
+      calc: (savegame: ISavegame) => savegame.attributes['plugins'],
       placement: 'detail',
       isToggleable: false,
       edit: {},

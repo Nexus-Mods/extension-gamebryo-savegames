@@ -9,8 +9,13 @@ import update from 'immutability-helper';
  */
 export const sessionReducer: types.IReducerSpec = {
   reducers: {
-    [actions.setSavegames as any]: (state, payload) =>
-      util.setSafe(state, ['saves'], payload),
+    [actions.setSavegames as any]: (state, payload) => {
+      const { savegames, truncated } = payload;
+      return util.setSafe(
+        util.setSafe(state,
+          ['saves'], savegames),
+          ['savesTruncated'], truncated);
+    },
     [actions.removeSavegame as any]: (state, payload) =>
       util.deleteOrNop(state, ['saves', payload]),
     [actions.setSavegameAttribute as any]: (state, payload) => {
@@ -30,6 +35,7 @@ export const sessionReducer: types.IReducerSpec = {
   },
   defaults: {
     saves: {},
+    savesTruncated: false,
     savegamePath: '',
     showDialog: false,
     selectedProfile: undefined,

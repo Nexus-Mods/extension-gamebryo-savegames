@@ -44,14 +44,14 @@ function updateSaves(store: Redux.Store<any>,
     if (store.getState().session.saves[save.id] === undefined) {
       newSavegames.push(save);
     }
-  })
-  .then((failedReads: string[]) => Promise.resolve({ newSavegames, failedReads }))
-  .then((result: { newSavegames: ISavegame[], failedReads: string[] }) => {
+  }, true)
+  .then(({ failedReads, truncated }) => Promise.resolve({ newSavegames, failedReads, truncated }))
+  .then((result: { newSavegames: ISavegame[], failedReads: string[], truncated: boolean }) => {
     const savesDict: { [id: string]: ISavegame } = {};
     result.newSavegames.forEach(
       (save: ISavegame) => { savesDict[save.id] = save; });
 
-    store.dispatch(setSavegames(savesDict));
+    store.dispatch(setSavegames(savesDict, result.truncated));
     return Promise.resolve(result.failedReads);
   });
 }

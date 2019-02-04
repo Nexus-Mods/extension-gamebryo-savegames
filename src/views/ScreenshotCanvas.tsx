@@ -3,9 +3,7 @@ import { ISavegame } from '../types/ISavegame';
 import savegameLibInit, { Dimensions } from 'gamebryo-savegame';
 import * as React from 'react';
 import { log } from 'vortex-api';
-import { hex2buf } from '../util/buf2hex';
-
-const savegameLib = savegameLibInit('savegameLib');
+import { getScreenshot } from '../util/refreshSavegames';
 
 interface ICanvasProps {
   save: ISavegame;
@@ -48,13 +46,17 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
   }
 
   private updateImage() {
+    const { save } = this.props;
     if (this.screenshotCanvas === null) {
       return;
     }
     const ctx: CanvasRenderingContext2D = this.screenshotCanvas.getContext('2d');
     const width = Math.max(this.screenshotCanvas.width, 1);
     const height = Math.max(this.screenshotCanvas.height, 1);
-    const buffer: Uint8ClampedArray = hex2buf(this.props.save.attributes.screenshotData);
+    const buffer: Uint8ClampedArray = getScreenshot(save.id);
+    if (buffer === undefined) {
+      return;
+    }
     // this is supposed to work but it crashes the process - maybe a bug in the chrome
     // version bundled with electron 2.0.16?
     // const imgData: ImageData = new ImageData(buffer, width, height);
@@ -67,7 +69,7 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
           ctx.drawImage(bitmap, 0, 0);
         });
     } catch (err) {
-      log('warn', 'failed to read savegame screenshot', { fileName: this.props.save.filePath, error: err.message });
+      log('warn', 'failed to read savegame screenshot', { fileName: save.filePath, error: err.message });
     }
   }
   
