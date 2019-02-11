@@ -1,7 +1,7 @@
 import { removeSavegame, showTransferDialog } from '../actions/session';
 import { ISavegame } from '../types/ISavegame';
 import { mygamesPath, saveFiles } from '../util/gameSupport';
-import { refreshSavegames, MAX_SAVEGAMES } from '../util/refreshSavegames';
+import { MAX_SAVEGAMES, refreshSavegames } from '../util/refreshSavegames';
 import restoreSavegamePlugins, { MissingPluginsError } from '../util/restoreSavegamePlugins';
 import transferSavegames from '../util/transferSavegames';
 
@@ -10,14 +10,14 @@ import getSavegameAttributes from '../savegameAttributes';
 import * as Promise from 'bluebird';
 import * as path from 'path';
 import * as React from 'react';
-import { FormControl, Panel, Alert } from 'react-bootstrap';
+import { Alert, FormControl, Panel } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import {} from 'redux-thunk';
 import {
   actions, ComponentEx, FlexLayout, fs, IconBar, ITableRowAction,
-  MainPage, selectors, Spinner, Table, tooltip, types, util, log
+  log, MainPage, selectors, Spinner, Table, tooltip, types, util,
 } from 'vortex-api';
 
 const placeholder: string = '------';
@@ -113,7 +113,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       );
     }
 
-   return (
+    return (
       <MainPage>
         <MainPage.Header>
           {header}
@@ -138,7 +138,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
             <FlexLayout type='column'>
               {savesTruncated && !showTransfer ? (<FlexLayout.Fixed>
                 <Alert>
-                  {t('For performance reasons only the {{count}} most recent save games were loaded.', { replace: { count: MAX_SAVEGAMES } })}
+                  {t('For performance reasons only the {{count}} most recent '
+                    + 'save games were loaded.', { replace: { count: MAX_SAVEGAMES } })}
                 </Alert>
               </FlexLayout.Fixed>) : null}
               <FlexLayout.Flex>
@@ -386,7 +387,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);
 
     let allowErrorReport: boolean = true;
-    let userCancelled: boolean = false; 
+    let userCancelled: boolean = false;
     onShowDialog('question', t('Import Savegames'), {
       message: t('The following files will be imported:\n{{saveIds}}\n'
         + 'Do you want to move them or create a copy?',
@@ -413,15 +414,18 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         const destSavePath = path.join(
           mygamesPath(gameId), 'Saves', activeHasLocalSaves ? currentProfile.id : '');
 
+        const keepSource = result.action === 'Copy';
         return fs.ensureDirAsync(destSavePath)
-          .then(() => transferSavegames(fileNames, sourceSavePath, destSavePath, result.action === 'Copy'))
+          .then(() => transferSavegames(fileNames, sourceSavePath, destSavePath, keepSource))
           .catch(err => {
             allowErrorReport = ['EPERM', 'ENOSPC'].indexOf(err.code) === -1;
-            log(allowErrorReport ? 'error' : 'warn', 'Failed to create save game directory - ', err.code);
-            
-            return [t('Unable to create save game directory: {{dest}}\\ (Please ensure you have enough space and/or full write permissions to the destination folder)', 
+            const logLevel = allowErrorReport ? 'error' : 'warn';
+            log(logLevel, 'Failed to create save game directory - ', err.code);
+
+            return [t('Unable to create save game directory: {{dest}}\\ (Please ensure you have '
+                    + 'enough space and/or full write permissions to the destination folder)',
             { replace: { dest: destSavePath } })];
-          })
+          });
       })
       .then((failedCopies: string[]) => {
         if (userCancelled) {
