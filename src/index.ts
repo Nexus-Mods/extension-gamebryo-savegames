@@ -10,7 +10,7 @@ import * as Promise from 'bluebird';
 import { remote } from 'electron';
 import * as path from 'path';
 import * as Redux from 'redux';
-import { fs, log, selectors, types, util, actions } from 'vortex-api';
+import { actions, fs, log, selectors, types, util } from 'vortex-api';
 import {IniFile} from 'vortex-parse-ini';
 
 let fsWatcher: fs.FSWatcher;
@@ -22,7 +22,9 @@ function profileSavePath(profile: types.IProfile) {
     : 'Saves' + path.sep;
 }
 
-function applySaveSettings(api: types.IExtensionApi, profile: types.IProfile, iniFile: IniFile<any>) {
+function applySaveSettings(api: types.IExtensionApi,
+                           profile: types.IProfile,
+                           iniFile: IniFile<any>) {
   const savePath = profileSavePath(profile);
 
   if (iniFile.data.General === undefined) {
@@ -78,12 +80,12 @@ function genUpdateSavegameHandler(api: types.IExtensionApi) {
       .finally(() => {
         api.store.dispatch(actions.stopActivity('savegames', 'Loading'));
       });
-  }
+  };
 }
 
 interface IExtensionContextExt extends types.IExtensionContext {
-  registerProfileFeature: (featureId: string, type: string, icon: string, label: string, description: string,
-       supported: () => boolean) => void;
+  registerProfileFeature: (featureId: string, type: string, icon: string,
+                           label: string, description: string, supported: () => boolean) => void;
 }
 
 function init(context: IExtensionContextExt): boolean {
@@ -104,7 +106,8 @@ function init(context: IExtensionContextExt): boolean {
     'local_saves', 'boolean', 'savegame', 'Save Games', 'This profile has its own save games',
     () => gameSupported(selectors.activeGameId(context.api.store.getState())));
 
-  context.registerAction('profile-actions', 100, 'open-ext', {}, 'Open Save Games', (instanceIds: string[]) => {
+  context.registerAction('profile-actions', 100, 'open-ext', {},
+                         'Open Save Games', (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
     const hasLocalSaves = util.getSafe(profile, ['features', 'local_saves'], false);
@@ -113,8 +116,8 @@ function init(context: IExtensionContextExt): boolean {
         : path.join(mygamesPath(profile.gameId), 'Saves');
     fs.ensureDirAsync(profileSavesPath)
       .then(() => util.opn(profileSavesPath))
-      .catch(err => context.api.showErrorNotification('Failed to open savegame directory', err,
-                                                      { allowReport: (err as any).code !== 'ENOENT' }));
+      .catch(err => context.api.showErrorNotification(
+        'Failed to open savegame directory', err, { allowReport: (err as any).code !== 'ENOENT' }));
   }, (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
@@ -134,7 +137,7 @@ function init(context: IExtensionContextExt): boolean {
     };
 
     remote.getCurrentWindow().on('focus', onFocus);
-    
+
     window.addEventListener('beforeunload', () => {
       remote.getCurrentWindow().removeListener('focus', onFocus);
     });
@@ -142,26 +145,31 @@ function init(context: IExtensionContextExt): boolean {
     context.api.onStateChange(['persistent', 'profiles'],
                               (oldProfiles: { [profileId: string]: types.IProfile },
                                newProfiles: { [profileId: string]: types.IProfile }) => {
-      const profile = selectors.activeProfile(store.getState());
-      const localSavesBefore = util.getSafe(oldProfiles, [profile.id, 'features', 'local_saves'], false);
-      const localSavesAfter = util.getSafe(newProfiles, [profile.id, 'features', 'local_saves'], false);
+      const prof = selectors.activeProfile(store.getState());
+      const localSavesBefore =
+        util.getSafe(oldProfiles, [prof.id, 'features', 'local_saves'], false);
+      const localSavesAfter =
+        util.getSafe(newProfiles, [prof.id, 'features', 'local_saves'], false);
 
       if (localSavesBefore !== localSavesAfter) {
         store.dispatch(clearSavegames());
-        const savePath = profileSavePath(profile);
-        const savesPath = path.join(mygamesPath(profile.gameId), savePath);
+        const savePath = profileSavePath(prof);
+        const savesPath = path.join(mygamesPath(prof.gameId), savePath);
         store.dispatch(setSavegamePath(savePath));
-        update.schedule(undefined, profile.id, savesPath);
+        update.schedule(undefined, prof.id, savesPath);
       }
     });
 
-    context.api.onAsync('apply-settings', (profile: types.IProfile, filePath: string, ini: IniFile<any>) => {
-      if (gameSupported(profile.gameId) && (filePath.toLowerCase() === iniPath(profile.gameId).toLowerCase())) {
-        applySaveSettings(context.api, profile, ini);
+    context.api.onAsync('apply-settings',
+                        (prof: types.IProfile, filePath: string, ini: IniFile<any>) => {
+      log('debug', 'apply savegame settings', { gameId: prof.gameId, filePath });
+      if (gameSupported(prof.gameId)
+          && (filePath.toLowerCase() === iniPath(prof.gameId).toLowerCase())) {
+        applySaveSettings(context.api, prof, ini);
         store.dispatch(clearSavegames());
-        const savePath = profileSavePath(profile);
-        const savesPath = path.join(mygamesPath(profile.gameId), savePath);
-        update.schedule(undefined, profile.id, savesPath);
+        const savePath = profileSavePath(prof);
+        const savesPath = path.join(mygamesPath(prof.gameId), savePath);
+        update.schedule(undefined, prof.id, savesPath);
       }
       return Promise.resolve();
     });
@@ -177,15 +185,15 @@ function init(context: IExtensionContextExt): boolean {
         return;
       }
 
-      const profile = selectors.profileById(state, profileId);
-      if (!gameSupported(profile.gameId)) {
+      const prof = selectors.profileById(state, profileId);
+      if (!gameSupported(prof.gameId)) {
         return;
       }
 
-      const savePath = profileSavePath(profile);
+      const savePath = profileSavePath(prof);
       store.dispatch(setSavegamePath(savePath));
 
-      const savesPath = path.join(mygamesPath(profile.gameId), savePath);
+      const savesPath = path.join(mygamesPath(prof.gameId), savePath);
       fs.ensureDirAsync(savesPath)
       .then(() => {
         // always refresh on profile change!
@@ -213,10 +221,12 @@ function init(context: IExtensionContextExt): boolean {
       });
     });
 
-    const profile = selectors.activeProfile(store.getState());
-    if (profile !== undefined) {
-      const savePath = profileSavePath(profile);
-      store.dispatch(setSavegamePath(savePath));
+    {
+      const profile = selectors.activeProfile(store.getState());
+      if (profile !== undefined) {
+        const savePath = profileSavePath(profile);
+        store.dispatch(setSavegamePath(savePath));
+      }
     }
   });
 
