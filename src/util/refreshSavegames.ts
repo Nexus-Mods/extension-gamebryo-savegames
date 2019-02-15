@@ -8,9 +8,10 @@ import { fs } from 'vortex-api';
 
 const savegameLib = savegameLibInit('savegameLib');
 
-// TODO essentially disables cache clearing since we can as many screenshots as the max of savegames we will display.
-// The reason being that the thumbnails on the list weren't rerendered after having been removed from the cache and
-// then reloaded and I don't have the time to investigate that.
+// TODO essentially disables cache clearing since we can as many screenshots as the max of
+// savegames we will display.
+// The reason being that the thumbnails on the list weren't rerendered after having been removed
+// from the cache and then reloaded and I don't have the time to investigate that.
 const MIN_CACHE_SIZE = 200;
 const MAX_CACHE_SIZE = MIN_CACHE_SIZE + 20;
 export const MAX_SAVEGAMES = 200;
@@ -19,7 +20,7 @@ const screenshotCache: {
   [id: string]: {
     data: Uint8ClampedArray,
     lastAccess: number,
-  }
+  },
 } = {};
 
 function maintainCache() {
@@ -32,6 +33,15 @@ function maintainCache() {
   }
 }
 
+export interface IRefreshResult {
+  failedReads: string[];
+  truncated: boolean;
+}
+
+function isSavegame(input: string) {
+  return ['.ess', '.fos'].indexOf(path.extname(input).toLowerCase()) !== -1;
+}
+
 /**
  * reads the savegame dir and adds savegames missing in our database
  *
@@ -40,14 +50,13 @@ function maintainCache() {
  */
 export function refreshSavegames(savesPath: string,
                                  onAddSavegame: (save: ISavegame) => void,
-                                 allowTruncate: boolean): Promise<{ failedReads: string[], truncated: boolean }> {
+                                 allowTruncate: boolean): Promise<IRefreshResult> {
   const failedReads: string[] = [];
   let truncated = false;
   let saves = [];
   return turbowalk(savesPath, entries => {
-    saves.push(...entries
-      .filter(entry => ['.ess', '.fos'].indexOf(path.extname(entry.filePath).toLowerCase()) !== -1));
-    })
+    saves.push(...entries.filter(entry => isSavegame(entry.filePath)));
+  })
     .catch(err => (err.code === 'ENOENT')
       ? Promise.resolve()
       : Promise.reject(err))
@@ -83,7 +92,7 @@ export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) 
                              full: boolean, tries: number = 2): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     try {
-      savegameLib.create(filePath, (err, sg) => {
+      savegameLib.create(filePath, !full, (err, sg) => {
         if (err !== null) {
           return reject(err);
         }
@@ -91,7 +100,7 @@ export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) 
         if (full) {
           screenshotCache[id] = {
             lastAccess: Date.now(),
-            data: new Uint8ClampedArray(sg.screenshot)
+            data: new Uint8ClampedArray(sg.screenshot),
           };
         }
         const save: ISavegame = {
