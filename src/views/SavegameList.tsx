@@ -384,7 +384,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     const { t, currentProfile, onShowDialog } = this.props;
     const { importSaves, profileId } = this.state;
 
-    const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);
+    const saveGames = instanceIds.map(id => importSaves[id]);
+    const fileNames = saveGames.map(save => save.attributes['filename']);
 
     let allowErrorReport: boolean = true;
     let userCancelled: boolean = false;
@@ -406,8 +407,6 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           return;
         }
         const gameId = currentProfile.gameId;
-        const sourceSavePath = path.join(
-          mygamesPath(gameId), 'Saves', profileId !== '__global' ? profileId : '');
 
         const activeHasLocalSaves =
           util.getSafe(currentProfile, ['features', 'local_saves'], false);
@@ -416,7 +415,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
         const keepSource = result.action === 'Copy';
         return fs.ensureDirAsync(destSavePath)
-          .then(() => transferSavegames(fileNames, sourceSavePath, destSavePath, keepSource))
+          .then(() => transferSavegames(saveGames, destSavePath, keepSource))
           .catch(err => {
             allowErrorReport = ['EPERM', 'ENOSPC'].indexOf(err.code) === -1;
             const logLevel = allowErrorReport ? 'error' : 'warn';
