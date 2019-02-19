@@ -89,6 +89,12 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     this.mAttributes = getSavegameAttributes(this.context.api);
   }
 
+  public componentWillReceiveProps(newProps: Props) {
+    if ((this.props.showTransfer !== newProps.showTransfer) && newProps.showTransfer) {
+      this.nextState.profileId = undefined;
+    }
+  }
+
   public render(): JSX.Element {
     const { t, activity, showTransfer } = this.props;
 
@@ -125,8 +131,33 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     );
   }
 
+  private displayContent(): { [saveId: string]: ISavegame } {
+    const { currentProfile, saves, showTransfer } = this.props;
+    const { profileId, importSaves } = this.state;
+
+    const currentDict: { [saveId: string]: ISavegame } = showTransfer
+      ? importSaves
+      : saves;
+
+    if (profileId === undefined) {
+      return currentDict;
+    }
+
+    const saveGames = Object.keys(currentDict).map(key => currentDict[key]);
+    const sourceSavePath = path.join(
+      mygamesPath(currentProfile.gameId), 'Saves', profileId !== '__global' ? profileId : '');
+
+    const savesDict: { [id: string]: ISavegame } = {};
+    saveGames.forEach(save => {
+      (path.relative(sourceSavePath, save.filePath) === path.basename(save.filePath))
+        ? savesDict[save.id] = save
+        : null;
+    });
+    return savesDict;
+  }
+
   private renderContent(saveActions: ITableRowAction[]) {
-    const { t, saves, savesTruncated, showTransfer } = this.props;
+    const { t, savesTruncated, showTransfer } = this.props;
     const { importSaves, profileId } = this.state;
 
     let content = null;
@@ -145,7 +176,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
               <FlexLayout.Flex>
                 <Table
                   tableId='savegames'
-                  data={showTransfer ? importSaves : saves}
+                  data={this.displayContent()}
                   actions={saveActions}
                   staticElements={this.mAttributes}
                 />
@@ -248,6 +279,11 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   private cancelTransfer = () => {
+    // Transfer has been cancelled, revert all
+    //  transfer related state information.
+    const { currentProfile } = this.props;
+    this.nextState.profileId = currentProfile.id;
+    this.nextState.importSaves = undefined;
     this.props.onHideTransfer();
   }
 
@@ -336,8 +372,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
   private remove = (instanceIds: string[]) => {
     const { t, currentProfile, onRemoveSavegame, onShowDialog,
-            onShowError, savesPath } = this.props;
-
+            onShowError } = this.props;
+    const { profileId } = this.state;
     let doRemoveSavegame = true;
 
     onShowDialog('question', t('Confirm Deletion'), {
@@ -350,9 +386,13 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       .then((result: types.IDialogResult) => {
         doRemoveSavegame = result.action === 'Delete';
         if (doRemoveSavegame) {
+          // Use the profileId to resolve the correct sourcePath
+          //  for the selected savegames.
+          const sourceSavePath = path.join(
+            mygamesPath(currentProfile.gameId), 'Saves', profileId !== '__global' ? profileId : '');
           return Promise.map(instanceIds, id => !!id
             ? Promise.map(saveFiles(currentProfile.gameId, id), filePath =>
-              fs.removeAsync(path.join(mygamesPath(currentProfile.gameId), savesPath, filePath))
+              fs.removeAsync(path.join(sourceSavePath, filePath))
                 .catch(util.UserCanceled, () => undefined)
                 .catch(err => {
                   if (err.code === 'ENOENT') {
@@ -366,6 +406,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
                   return Promise.reject(err);
                 })
                 .then(() => {
+                  this.refreshImportSaves();
                   onRemoveSavegame(id);
                 }))
             : Promise.reject(new Error('invalid savegame id')))
@@ -378,6 +419,31 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           return Promise.resolve();
         }
       });
+  }
+
+  // Should be called to immediately refresh the importSaves object
+  private refreshImportSaves() {
+    const { currentProfile, onShowError } = this.props;
+    const { importSaves, profileId } = this.state;
+
+    const gameId = currentProfile.gameId;
+
+    const sourceSavePath = path.join(
+      mygamesPath(gameId), 'Saves', profileId !== '__global' ? profileId : '');
+
+    let saves: ISavegame[] = [];
+    return refreshSavegames(sourceSavePath, (save: ISavegame): void => {
+      saves.push(save);
+    }, false)
+      .then(() => {
+        const savesDict: { [id: string]: ISavegame } = {};
+        saves.forEach(save => savesDict[save.id] = save);
+        importSaves !== savesDict 
+          ? this.nextState.importSaves = savesDict
+          : null;
+        return Promise.resolve();
+      })
+      .catch(err => onShowError('Unable to refresh import save list', err));
   }
 
   private importSaves = (instanceIds: string[]) => {
@@ -428,6 +494,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           });
       })
       .then((failedCopies: string[]) => {
+        this.refreshImportSaves();
         if (userCancelled) {
           this.context.api.sendNotification({
             type: 'info',
