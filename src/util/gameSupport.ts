@@ -24,6 +24,13 @@ const gameSupport: { [key: string]: IGameSupport } = {
       return [].concat([input], scriptExtenderFiles(input, 'skse'));
     },
   },
+  enderal: {
+    mygamesPath: 'enderal',
+    iniName: 'Enderal.ini',
+    prefIniName: 'EnderalPrefs.ini',
+    saveFiles: (input: string): string[] =>
+      [].concat([input], scriptExtenderFiles(input, 'skse')),
+  },
   skyrimse: {
     mygamesPath: 'Skyrim Special Edition',
     iniName: 'Skyrim.ini',
