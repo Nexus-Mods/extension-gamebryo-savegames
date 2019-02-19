@@ -33,6 +33,9 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
             }, true)
               .then(() => {
                 loading.delete(savegame.id);
+              }).catch(err => {
+                loading.delete(savegame.id);
+                api.showErrorNotification('Failed to load screenshot', err, { allowReport: err.code !== 'ENOENT' })
               });
           }
           return null;
