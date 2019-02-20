@@ -27,12 +27,11 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
 
   public render(): JSX.Element {
     const { save } = this.props;
-    if ((save === undefined) 
-      || ((save.attributes['screenshot'] === undefined) 
-        && (getScreenshot(save.id) === undefined))) {
+    if ((save === undefined)
+        || (save.attributes['screenshot'] === undefined)) {
       return null;
     }
-    const dim: Dimensions = ((save.attributes as any).screenshot) || (getScreenshot(save.id) === undefined);
+    const dim: Dimensions = (save.attributes as any).screenshot;
     return (
       <canvas
         className='screenshot-canvas'

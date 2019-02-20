@@ -25,7 +25,7 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
         // customRenderer will only be called when the screenshot actually comes into view so we use it
         // as a trigger to get more detailed info from the file
         if ((savegame.attributes.screenshot === undefined)
-            && (getScreenshot(savegame.id) === undefined)) {
+            || (getScreenshot(savegame.id) === undefined)) {
           if (!loading.has(savegame.id)) {
             loading.add(savegame.id);
             loadSaveGame(savegame.filePath, (save: ISavegame) => {

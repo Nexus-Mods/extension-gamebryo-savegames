@@ -24,9 +24,7 @@ export const sessionReducer: types.IReducerSpec = {
     },
     [actions.updateSavegame as any]: (state, payload) => {
       const { id, saveGame } = payload;
-      return (util.getSafe(state, ['saves', id], undefined) !== undefined)
-        ? util.setSafe(state, ['saves', id], saveGame)
-        : state;
+      return util.setSafe(state, ['saves', id], saveGame);
     },
     [actions.showTransferDialog as any]: (state, payload) =>
       util.setSafe(state, ['showDialog'], payload),

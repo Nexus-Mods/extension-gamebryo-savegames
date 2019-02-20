@@ -131,8 +131,33 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     );
   }
 
+  private displayContent(): { [saveId: string]: ISavegame } {
+    const { currentProfile, saves, showTransfer } = this.props;
+    const { profileId, importSaves } = this.state;
+
+    const currentDict: { [saveId: string]: ISavegame } = showTransfer
+      ? importSaves
+      : saves;
+
+    if (profileId === undefined) {
+      return currentDict;
+    }
+
+    const saveGames = Object.keys(currentDict).map(key => currentDict[key]);
+    const sourceSavePath = path.join(
+      mygamesPath(currentProfile.gameId), 'Saves', profileId !== '__global' ? profileId : '');
+
+    const savesDict: { [id: string]: ISavegame } = {};
+    saveGames.forEach(save => {
+      (path.relative(sourceSavePath, save.filePath) === path.basename(save.filePath))
+        ? savesDict[save.id] = save
+        : null;
+    });
+    return savesDict;
+  }
+
   private renderContent(saveActions: ITableRowAction[]) {
-    const { t, savesTruncated, showTransfer, saves } = this.props;
+    const { t, savesTruncated, showTransfer } = this.props;
     const { importSaves, profileId } = this.state;
 
     let content = null;
@@ -151,7 +176,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
               <FlexLayout.Flex>
                 <Table
                   tableId='savegames'
-                  data={showTransfer ? importSaves : saves}
+                  data={this.displayContent()}
                   actions={saveActions}
                   staticElements={this.mAttributes}
                 />
@@ -185,6 +210,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     } else {
       return null;
     }
+
   }
 
   private renderTransfer() {
@@ -286,10 +312,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     this.nextState.importSaves = undefined;
 
     return refreshSavegames(savesPath, (save: ISavegame): void => {
-      // Ensure we only display saves relevant to the current profileId.
-      if (path.relative(savesPath, save.filePath) === path.basename(save.filePath)) {
-        newSavegames.push(save);
-      }
+      newSavegames.push(save);
     }, false)
       .then(() => {
         const savesDict: { [id: string]: ISavegame } = {};
@@ -372,7 +395,9 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
               fs.removeAsync(path.join(sourceSavePath, filePath))
                 .catch(util.UserCanceled, () => undefined)
                 .catch(err => {
-                  if (err.code === 'EPERM') {
+                  if (err.code === 'ENOENT') {
+                    return Promise.resolve();
+                  } else if (err.code === 'EPERM') {
                     onShowError('Failed to delete savegame',
                                 'The file is write protected.',
                                 undefined, false);
@@ -408,10 +433,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
     let saves: ISavegame[] = [];
     return refreshSavegames(sourceSavePath, (save: ISavegame): void => {
-      // Ensure we only display saves relevant to the current profileId.
-      if (path.relative(sourceSavePath, save.filePath) === path.basename(save.filePath)) {
-        saves.push(save);
-      }
+      saves.push(save);
     }, false)
       .then(() => {
         const savesDict: { [id: string]: ISavegame } = {};
