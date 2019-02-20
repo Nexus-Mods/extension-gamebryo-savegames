@@ -86,7 +86,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   public componentWillMount() {
-    this.mAttributes = getSavegameAttributes(this.context.api);
+    this.mAttributes = getSavegameAttributes(this.context.api, this.getTransferStatus);
   }
 
   public componentWillReceiveProps(newProps: Props) {
@@ -131,33 +131,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     );
   }
 
-  private displayContent(): { [saveId: string]: ISavegame } {
-    const { currentProfile, saves, showTransfer } = this.props;
-    const { profileId, importSaves } = this.state;
-
-    const currentDict: { [saveId: string]: ISavegame } = showTransfer
-      ? importSaves
-      : saves;
-
-    if (profileId === undefined) {
-      return currentDict;
-    }
-
-    const saveGames = Object.keys(currentDict).map(key => currentDict[key]);
-    const sourceSavePath = path.join(
-      mygamesPath(currentProfile.gameId), 'Saves', profileId !== '__global' ? profileId : '');
-
-    const savesDict: { [id: string]: ISavegame } = {};
-    saveGames.forEach(save => {
-      (path.relative(sourceSavePath, save.filePath) === path.basename(save.filePath))
-        ? savesDict[save.id] = save
-        : null;
-    });
-    return savesDict;
-  }
-
   private renderContent(saveActions: ITableRowAction[]) {
-    const { t, savesTruncated, showTransfer } = this.props;
+    const { t, savesTruncated, showTransfer, saves } = this.props;
     const { importSaves, profileId } = this.state;
 
     let content = null;
@@ -176,7 +151,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
               <FlexLayout.Flex>
                 <Table
                   tableId='savegames'
-                  data={this.displayContent()}
+                  data={showTransfer ? importSaves : saves}
                   actions={saveActions}
                   staticElements={this.mAttributes}
                 />
@@ -277,6 +252,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       </option>
     );
   }
+
+  private getTransferStatus = () => this.props.showTransfer;
 
   private cancelTransfer = () => {
     // Transfer has been cancelled, revert all
@@ -395,9 +372,10 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
               fs.removeAsync(path.join(sourceSavePath, filePath))
                 .catch(util.UserCanceled, () => undefined)
                 .catch(err => {
-                  if (err.code === 'ENOENT') {
-                    return Promise.resolve();
-                  } else if (err.code === 'EPERM') {
+                  // We're not checking for 'ENOENT' at this point given that
+                  //  fs.removeAsync wrapper will resolve whenever these are 
+                  //  encountered.
+                  if (err.code === 'EPERM') {
                     onShowError('Failed to delete savegame',
                                 'The file is write protected.',
                                 undefined, false);

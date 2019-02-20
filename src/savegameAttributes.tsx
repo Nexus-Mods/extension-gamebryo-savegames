@@ -12,7 +12,7 @@ import { updateSavegame } from './actions/session';
 let language: string;
 let collator: Intl.Collator;
 
-function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
+function getSavegameAttributes(api: IExtensionApi, isTransferring: () => boolean): types.ITableAttribute[] {
   const loading: Set<string> = new Set();
 
   return [
@@ -21,6 +21,7 @@ function getSavegameAttributes(api: IExtensionApi): types.ITableAttribute[] {
       name: 'Screenshot',
       description: 'Savegame screenshot',
       icon: ' file-picture-o',
+      condition: () => !isTransferring(),
       customRenderer: (savegame: ISavegame) => {
         // customRenderer will only be called when the screenshot actually comes into view so we use it
         // as a trigger to get more detailed info from the file
