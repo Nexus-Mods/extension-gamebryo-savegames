@@ -61,7 +61,8 @@ type Props = IConnectedProps & IActionProps;
  */
 class SavegameList extends ComponentEx<Props, IComponentState> {
   private savegameActions: ITableRowAction[];
-  private mAttributes: types.ITableAttribute[] = [];
+  private mTransferAttributes: types.ITableAttribute[] = [];
+  private mCurrentProfileAttributes: types.ITableAttribute[] = [];
 
   constructor(props) {
     super(props);
@@ -86,15 +87,13 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   public componentWillMount() {
-    this.mAttributes = getSavegameAttributes(this.context.api, false);
+    this.mTransferAttributes = getSavegameAttributes(this.context.api, false);
+    this.mCurrentProfileAttributes = getSavegameAttributes(this.context.api, true);
   }
 
   public componentWillReceiveProps(newProps: Props) {
-    if (this.props.showTransfer !== newProps.showTransfer) {
-      this.mAttributes = getSavegameAttributes(this.context.api, newProps.showTransfer);
-      if (newProps.showTransfer) {
+    if ((this.props.showTransfer !== newProps.showTransfer) && newProps.showTransfer) {
         this.nextState.profileId = undefined;
-      }
     }
   }
 
@@ -156,7 +155,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
                   tableId='savegames'
                   data={showTransfer ? importSaves : saves}
                   actions={saveActions}
-                  staticElements={this.mAttributes}
+                  staticElements={showTransfer ? this.mTransferAttributes : this.mCurrentProfileAttributes}
                 />
               </FlexLayout.Flex>
             </FlexLayout>
@@ -255,8 +254,6 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       </option>
     );
   }
-
-  private getTransferStatus = () => this.props.showTransfer;
 
   private cancelTransfer = () => {
     // Transfer has been cancelled, revert all

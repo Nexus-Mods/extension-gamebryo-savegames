@@ -12,43 +12,42 @@ import { updateSavegame } from './actions/session';
 let language: string;
 let collator: Intl.Collator;
 
-function getSavegameAttributes(api: IExtensionApi, isTransferring: boolean): types.ITableAttribute[] {
+function getSavegameAttributes(api: IExtensionApi, addScreenshotAttrib: boolean): types.ITableAttribute[] {
   const loading: Set<string> = new Set();
-
-  return [
-    {
-      id: 'screenshot',
-      name: 'Screenshot',
-      description: 'Savegame screenshot',
-      icon: ' file-picture-o',
-      condition: () => !isTransferring,
-      customRenderer: (savegame: ISavegame) => {
-        // customRenderer will only be called when the screenshot actually comes into view so we use it
-        // as a trigger to get more detailed info from the file
-        if ((savegame.attributes.screenshot === undefined)
-            || (getScreenshot(savegame.id) === undefined)) {
-          if (!loading.has(savegame.id)) {
-            loading.add(savegame.id);
-            loadSaveGame(savegame.filePath, (save: ISavegame) => {
-              api.store.dispatch(updateSavegame(save.id, save));
-            }, true)
-              .then(() => {
-                loading.delete(savegame.id);
-              }).catch(err => {
-                loading.delete(savegame.id);
-                api.showErrorNotification('Failed to load screenshot', err, { allowReport: err.code !== 'ENOENT' })
-              });
-          }
-          return null;
-        } else {
-          return <ScreenshotCanvas save={savegame} />;
+  const screenshotAttribute: types.ITableAttribute = {
+    id: 'screenshot',
+    name: 'Screenshot',
+    description: 'Savegame screenshot',
+    icon: ' file-picture-o',
+    customRenderer: (savegame: ISavegame) => {
+      // customRenderer will only be called when the screenshot actually comes into view so we use it
+      // as a trigger to get more detailed info from the file
+      if ((savegame.attributes.screenshot === undefined)
+          || (getScreenshot(savegame.id) === undefined)) {
+        if (!loading.has(savegame.id)) {
+          loading.add(savegame.id);
+          loadSaveGame(savegame.filePath, (save: ISavegame) => {
+            api.store.dispatch(updateSavegame(save.id, save));
+          }, true)
+            .then(() => {
+              loading.delete(savegame.id);
+            }).catch(err => {
+              loading.delete(savegame.id);
+              api.showErrorNotification('Failed to load screenshot', err, { allowReport: err.code !== 'ENOENT' })
+            });
         }
-      },
-      calc: (savegame: ISavegame) => savegame.attributes['screenshot'],
-      placement: 'both',
-      isToggleable: true,
-      edit: {},
+        return null;
+      } else {
+        return <ScreenshotCanvas save={savegame} />;
+      }
     },
+    calc: (savegame: ISavegame) => savegame.attributes['screenshot'],
+    placement: 'both',
+    isToggleable: true,
+    edit: {},
+  };
+
+  const attributes: types.ITableAttribute[] = [
     {
       id: 'id',
       name: 'Save Game ID',
@@ -162,6 +161,12 @@ function getSavegameAttributes(api: IExtensionApi, isTransferring: boolean): typ
       edit: {},
     },
   ];
+
+  if (addScreenshotAttrib) {
+    attributes.unshift(screenshotAttribute);
+  }
+
+  return attributes;
 }
 
 export default getSavegameAttributes;
