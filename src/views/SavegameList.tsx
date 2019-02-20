@@ -86,12 +86,15 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   public componentWillMount() {
-    this.mAttributes = getSavegameAttributes(this.context.api, this.getTransferStatus);
+    this.mAttributes = getSavegameAttributes(this.context.api, false);
   }
 
   public componentWillReceiveProps(newProps: Props) {
-    if ((this.props.showTransfer !== newProps.showTransfer) && newProps.showTransfer) {
-      this.nextState.profileId = undefined;
+    if (this.props.showTransfer !== newProps.showTransfer) {
+      this.mAttributes = getSavegameAttributes(this.context.api, newProps.showTransfer);
+      if (newProps.showTransfer) {
+        this.nextState.profileId = undefined;
+      }
     }
   }
 
