@@ -54,8 +54,8 @@ export function refreshSavegames(savesPath: string,
   const failedReads: string[] = [];
   let truncated = false;
   let saves = [];
-  return turbowalk(savesPath, entries => {
-    saves.push(...entries.filter(entry => isSavegame(entry.filePath)));
+  return fs.readdirAsync(savesPath).then(files => {
+    saves = files.filter(file => isSavegame(file)).map(file => path.join(savesPath, file));
   })
     .catch(err => (err.code === 'ENOENT')
       ? Promise.resolve()
@@ -66,7 +66,7 @@ export function refreshSavegames(savesPath: string,
         truncated = true;
         saves = saves.slice(0, MAX_SAVEGAMES);
       }
-      return Promise.map(saves, iter => loadSaveGame(iter.filePath, onAddSavegame, false)
+      return Promise.map(saves, save => loadSaveGame(save, onAddSavegame, false)
         .catch(err => {
           failedReads.push(err.message);
         }));
