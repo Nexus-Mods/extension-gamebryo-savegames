@@ -1,18 +1,17 @@
+import { updateSavegame } from './actions/session';
 import { ISavegame } from './types/ISavegame';
 import CharacterFilter from './util/CharacterFilter';
-import { loadSaveGame, getScreenshot } from './util/refreshSavegames';
+import { getScreenshot, loadSaveGame } from './util/refreshSavegames';
 import PluginList from './views/PluginList';
 import ScreenshotCanvas from './views/ScreenshotCanvas';
 
 import * as React from 'react';
 import { TableDateTimeFilter, TableNumericFilter, TableTextFilter, types, util } from 'vortex-api';
-import { IExtensionApi } from 'vortex-api/lib/types/api';
-import { updateSavegame } from './actions/session';
 
 let language: string;
 let collator: Intl.Collator;
 
-function getSavegameAttributes(api: IExtensionApi, addScreenshotAttrib: boolean): types.ITableAttribute[] {
+function getSavegameAttributes(api: types.IExtensionApi, addScreenshotAttrib: boolean): types.ITableAttribute[] {
   const loading: Set<string> = new Set();
   const screenshotAttribute: types.ITableAttribute = {
     id: 'screenshot',
