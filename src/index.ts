@@ -17,9 +17,16 @@ let fsWatcher: fs.FSWatcher;
 
 function profileSavePath(profile: types.IProfile) {
   const localSaves = util.getSafe(profile, ['features', 'local_saves'], false);
-  return localSaves
-    ? path.join('Saves', profile.id) + path.sep
-    : 'Saves' + path.sep;
+
+  if (profile.gameId === 'enderal') {
+    return localSaves
+      ? path.join('..', 'Enderal', 'Saves', profile.id) + path.sep
+      : path.join('..', 'Enderal', 'Saves') + path.sep;
+  } else {
+    return localSaves
+      ? path.join('Saves', profile.id) + path.sep
+      : 'Saves' + path.sep;
+  }
 }
 
 function applySaveSettings(api: types.IExtensionApi,
