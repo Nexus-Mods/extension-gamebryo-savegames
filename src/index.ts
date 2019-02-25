@@ -2,7 +2,8 @@ import { clearSavegames, setSavegamePath,
    setSavegames, showTransferDialog } from './actions/session';
 import { sessionReducer } from './reducers/session';
 import { ISavegame } from './types/ISavegame';
-import {gameSupported, iniPath, mygamesPath, prefIniPath} from './util/gameSupport';
+import {gameSupported, iniPath, mygamesPath} from './util/gameSupport';
+import { profileSavePath } from './util/profileSavePath';
 import { refreshSavegames } from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';
 
@@ -14,20 +15,6 @@ import { actions, fs, log, selectors, types, util } from 'vortex-api';
 import {IniFile} from 'vortex-parse-ini';
 
 let fsWatcher: fs.FSWatcher;
-
-function profileSavePath(profile: types.IProfile) {
-  const localSaves = util.getSafe(profile, ['features', 'local_saves'], false);
-
-  if (profile.gameId === 'enderal') {
-    return localSaves
-      ? path.join('..', 'Enderal', 'Saves', profile.id) + path.sep
-      : path.join('..', 'Enderal', 'Saves') + path.sep;
-  } else {
-    return localSaves
-      ? path.join('Saves', profile.id) + path.sep
-      : 'Saves' + path.sep;
-  }
-}
 
 function applySaveSettings(api: types.IExtensionApi,
                            profile: types.IProfile,

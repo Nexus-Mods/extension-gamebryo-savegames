@@ -1,6 +1,7 @@
 import { removeSavegame, showTransferDialog } from '../actions/session';
 import { ISavegame } from '../types/ISavegame';
 import { mygamesPath, saveFiles } from '../util/gameSupport';
+import { profileSavePath } from '../util/profileSavePath';
 import { MAX_SAVEGAMES, refreshSavegames } from '../util/refreshSavegames';
 import restoreSavegamePlugins, { MissingPluginsError } from '../util/restoreSavegamePlugins';
 import transferSavegames from '../util/transferSavegames';
@@ -49,7 +50,7 @@ interface IActionProps {
 }
 
 interface IComponentState {
-  profileId: string;
+  importProfileId: string;
   importSaves: { [saveId: string]: ISavegame };
 }
 
@@ -67,7 +68,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   constructor(props) {
     super(props);
     this.initState({
-      profileId: undefined,
+      importProfileId: undefined,
       importSaves: undefined,
     });
 
@@ -92,8 +93,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   public componentWillReceiveProps(newProps: Props) {
-    if ((this.props.showTransfer !== newProps.showTransfer) && newProps.showTransfer) {
-        this.nextState.profileId = undefined;
+    if (this.props.showTransfer !== newProps.showTransfer) {
+      this.nextState.importProfileId = undefined;
     }
   }
 
@@ -135,7 +136,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
   private renderContent(saveActions: ITableRowAction[]) {
     const { t, savesTruncated, showTransfer, saves } = this.props;
-    const { importSaves, profileId } = this.state;
+    const { importSaves, importProfileId } = this.state;
 
     let content = null;
     if (!showTransfer || (importSaves !== undefined)) {
@@ -155,7 +156,9 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
                   tableId='savegames'
                   data={showTransfer ? importSaves : saves}
                   actions={saveActions}
-                  staticElements={showTransfer ? this.mTransferAttributes : this.mCurrentProfileAttributes}
+                  staticElements={showTransfer
+                    ? this.mTransferAttributes
+                    : this.mCurrentProfileAttributes}
                 />
               </FlexLayout.Flex>
             </FlexLayout>
@@ -163,7 +166,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         </Panel>
       );
     } else {
-      content = (profileId === undefined)
+      content = (importProfileId === undefined)
         ? <h4>{t('Please select a profile to import from')}</h4>
         : <Spinner />;
     }
@@ -259,7 +262,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     // Transfer has been cancelled, revert all
     //  transfer related state information.
     const { currentProfile } = this.props;
-    this.nextState.profileId = currentProfile.id;
+    this.nextState.importProfileId = currentProfile.id;
     this.nextState.importSaves = undefined;
     this.props.onHideTransfer();
   }
@@ -269,20 +272,22 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     if (profileId === '') {
       profileId = undefined;
     }
-    this.nextState.profileId = profileId;
+    this.nextState.importProfileId = profileId;
     this.loadSaves(profileId);
   }
 
   private loadSaves(selectedProfileId: string): Promise<void> {
-    const { currentProfile } = this.props;
+    const { currentProfile, profiles } = this.props;
 
     if (selectedProfileId === undefined) {
       this.nextState.importSaves = undefined;
       return;
     }
 
-    const savesPath = path.join(mygamesPath(currentProfile.gameId), 'Saves',
-      (selectedProfileId === '__global' ? '' : selectedProfileId));
+    const savesPath = path.resolve(mygamesPath(currentProfile.gameId),
+      selectedProfileId !== '__global'
+      ? profileSavePath(profiles[selectedProfileId])
+      : profileSavePath(currentProfile, true));
 
     const newSavegames: ISavegame[] = [];
 
@@ -349,8 +354,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
   private remove = (instanceIds: string[]) => {
     const { t, currentProfile, onRemoveSavegame, onShowDialog,
-            onShowError } = this.props;
-    const { profileId } = this.state;
+            onShowError, profiles } = this.props;
+    const { importProfileId } = this.state;
     let doRemoveSavegame = true;
 
     onShowDialog('question', t('Confirm Deletion'), {
@@ -365,15 +370,19 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         if (doRemoveSavegame) {
           // Use the profileId to resolve the correct sourcePath
           //  for the selected savegames.
-          const sourceSavePath = path.join(
-            mygamesPath(currentProfile.gameId), 'Saves', profileId !== '__global' ? profileId : '');
+
+          const sourceSavePath = path.resolve(mygamesPath(currentProfile.gameId),
+            importProfileId !== '__global'
+            ? profileSavePath(profiles[importProfileId || currentProfile.id])
+            : profileSavePath(currentProfile, true));
+
           return Promise.map(instanceIds, id => !!id
             ? Promise.map(saveFiles(currentProfile.gameId, id), filePath =>
               fs.removeAsync(path.join(sourceSavePath, filePath))
                 .catch(util.UserCanceled, () => undefined)
                 .catch(err => {
                   // We're not checking for 'ENOENT' at this point given that
-                  //  fs.removeAsync wrapper will resolve whenever these are 
+                  //  fs.removeAsync wrapper will resolve whenever these are
                   //  encountered.
                   if (err.code === 'EPERM') {
                     onShowError('Failed to delete savegame',
@@ -384,11 +393,10 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
                   return Promise.reject(err);
                 })
                 .then(() => {
-                  this.refreshImportSaves();
                   onRemoveSavegame(id);
                 }))
             : Promise.reject(new Error('invalid savegame id')))
-            .then(() => undefined)
+            .then(() => this.refreshImportSaves())
             .catch(err => {
               onShowError('Failed to delete savegame(s), this is probably a permission problem',
                           err, undefined, false);
@@ -401,32 +409,36 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
   // Should be called to immediately refresh the importSaves object
   private refreshImportSaves() {
-    const { currentProfile, onShowError } = this.props;
-    const { importSaves, profileId } = this.state;
+    const { currentProfile, onShowError, profiles } = this.props;
+    const { importSaves, importProfileId } = this.state;
 
-    const gameId = currentProfile.gameId;
+    if (importProfileId === undefined) {
+      return Promise.resolve();
+    }
 
-    const sourceSavePath = path.join(
-      mygamesPath(gameId), 'Saves', profileId !== '__global' ? profileId : '');
+    const sourceSavePath = path.resolve(mygamesPath(currentProfile.gameId),
+      importProfileId !== '__global'
+      ? profileSavePath(profiles[importProfileId])
+      : profileSavePath(currentProfile, true));
 
-    let saves: ISavegame[] = [];
+    const saves: ISavegame[] = [];
     return refreshSavegames(sourceSavePath, (save: ISavegame): void => {
       saves.push(save);
     }, false)
       .then(() => {
         const savesDict: { [id: string]: ISavegame } = {};
         saves.forEach(save => savesDict[save.id] = save);
-        importSaves !== savesDict 
-          ? this.nextState.importSaves = savesDict
-          : null;
+        if (importSaves !== savesDict) {
+          this.nextState.importSaves = savesDict;
+        }
         return Promise.resolve();
       })
       .catch(err => onShowError('Unable to refresh import save list', err));
   }
 
   private importSaves = (instanceIds: string[]) => {
-    const { t, currentProfile, onShowDialog } = this.props;
-    const { importSaves, profileId } = this.state;
+    const { t, currentProfile, onShowDialog, profiles } = this.props;
+    const { importSaves, importProfileId } = this.state;
 
     const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);
 
@@ -449,14 +461,14 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           userCancelled = true;
           return;
         }
-        const gameId = currentProfile.gameId;
-        const sourceSavePath = path.join(
-          mygamesPath(gameId), 'Saves', profileId !== '__global' ? profileId : '');
 
-        const activeHasLocalSaves =
-          util.getSafe(currentProfile, ['features', 'local_saves'], false);
-        const destSavePath = path.join(
-          mygamesPath(gameId), 'Saves', activeHasLocalSaves ? currentProfile.id : '');
+        const sourceSavePath = path.resolve(mygamesPath(currentProfile.gameId),
+          importProfileId !== '__global'
+          ? profileSavePath(profiles[importProfileId])
+          : profileSavePath(currentProfile, true));
+
+        const destSavePath = path.resolve(mygamesPath(currentProfile.gameId),
+                                          profileSavePath(currentProfile));
 
         const keepSource = result.action === 'Copy';
         return fs.ensureDirAsync(destSavePath)
