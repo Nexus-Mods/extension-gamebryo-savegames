@@ -11,7 +11,8 @@ import { TableDateTimeFilter, TableNumericFilter, TableTextFilter, types, util }
 let language: string;
 let collator: Intl.Collator;
 
-function getSavegameAttributes(api: types.IExtensionApi, addScreenshotAttrib: boolean): types.ITableAttribute[] {
+function getSavegameAttributes(api: types.IExtensionApi,
+                               addScreenshotAttrib: boolean): types.ITableAttribute[] {
   const loading: Set<string> = new Set();
   const screenshotAttribute: types.ITableAttribute = {
     id: 'screenshot',
@@ -19,8 +20,8 @@ function getSavegameAttributes(api: types.IExtensionApi, addScreenshotAttrib: bo
     description: 'Savegame screenshot',
     icon: ' file-picture-o',
     customRenderer: (savegame: ISavegame) => {
-      // customRenderer will only be called when the screenshot actually comes into view so we use it
-      // as a trigger to get more detailed info from the file
+      // customRenderer will only be called when the screenshot actually comes into view so
+      // we use it as a trigger to get more detailed info from the file
       if ((savegame.attributes.screenshot === undefined)
           || (getScreenshot(savegame.id) === undefined)) {
         if (!loading.has(savegame.id)) {
@@ -32,7 +33,8 @@ function getSavegameAttributes(api: types.IExtensionApi, addScreenshotAttrib: bo
               loading.delete(savegame.id);
             }).catch(err => {
               loading.delete(savegame.id);
-              api.showErrorNotification('Failed to load screenshot', err, { allowReport: err.code !== 'ENOENT' })
+              api.showErrorNotification('Failed to load screenshot', err,
+                                        { allowReport: err.code !== 'ENOENT' })
             });
         }
         return null;
