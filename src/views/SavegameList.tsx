@@ -15,7 +15,7 @@ import { Alert, FormControl, Panel } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
-import {} from 'redux-thunk';
+import { ThunkDispatch } from 'redux-thunk';
 import {
   actions, ComponentEx, FlexLayout, fs, IconBar, ITableRowAction,
   log, MainPage, selectors, Spinner, Table, tooltip, types, util,
@@ -523,7 +523,7 @@ function mapStateToProps(state: any): IConnectedProps {
   };
 }
 
-function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
+function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): IActionProps {
   return {
     onRemoveSavegame: (savegameId: string) => dispatch(removeSavegame(savegameId)),
     onShowDialog: (type, title, content, dialogActions) =>
