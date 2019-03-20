@@ -140,6 +140,10 @@ function init(context: IExtensionContextExt): boolean {
                               (oldProfiles: { [profileId: string]: types.IProfile },
                                newProfiles: { [profileId: string]: types.IProfile }) => {
       const prof = selectors.activeProfile(store.getState());
+      if (prof === undefined) {
+        return;
+      }
+
       const localSavesBefore =
         util.getSafe(oldProfiles, [prof.id, 'features', 'local_saves'], false);
       const localSavesAfter =
