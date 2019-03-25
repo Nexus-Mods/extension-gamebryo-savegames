@@ -3,7 +3,7 @@ import { ISavegame } from '../types/ISavegame';
 import * as Promise from 'bluebird';
 import savegameLibInit from 'gamebryo-savegame';
 import * as path from 'path';
-import turbowalk from 'turbowalk';
+import turbowalk, { IEntry } from 'turbowalk';
 import { fs } from 'vortex-api';
 
 const savegameLib = savegameLibInit('savegameLib');
@@ -38,8 +38,9 @@ export interface IRefreshResult {
   truncated: boolean;
 }
 
-function isSavegame(input: string) {
-  return ['.ess', '.fos'].indexOf(path.extname(input).toLowerCase()) !== -1;
+function isSavegame(input: IEntry) {
+  return !input.isDirectory
+    && ['.ess', '.fos'].indexOf(path.extname(input.filePath).toLowerCase()) !== -1;
 }
 
 /**
@@ -53,10 +54,11 @@ export function refreshSavegames(savesPath: string,
                                  allowTruncate: boolean): Promise<IRefreshResult> {
   const failedReads: string[] = [];
   let truncated = false;
-  let saves = [];
-  return fs.readdirAsync(savesPath).then(files => {
-    saves = files.filter(file => isSavegame(file)).map(file => path.join(savesPath, file));
-  })
+  let saves: IEntry[] = [];
+
+  return turbowalk(savesPath, entries => {
+    saves = saves.concat(entries.filter(file => isSavegame(file)));
+  }, { recurse: false })
     .catch(err => (err.code === 'ENOENT')
       ? Promise.resolve()
       : Promise.reject(err))
@@ -66,7 +68,7 @@ export function refreshSavegames(savesPath: string,
         truncated = true;
         saves = saves.slice(0, MAX_SAVEGAMES);
       }
-      return Promise.map(saves, save => loadSaveGame(save, onAddSavegame, false)
+      return Promise.map(saves, save => loadSaveGame(save.filePath, onAddSavegame, false)
         .catch(err => {
           failedReads.push(err.message);
         }));
