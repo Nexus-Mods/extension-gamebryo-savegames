@@ -281,7 +281,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
     if (selectedProfileId === undefined) {
       this.nextState.importSaves = undefined;
-      return;
+      return Promise.resolve();
     }
 
     const savesPath = path.resolve(mygamesPath(currentProfile.gameId),
@@ -302,6 +302,12 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
         this.nextState.importSaves = savesDict;
         return Promise.resolve();
+      })
+      .catch(err => {
+        this.nextState.importSaves = {};
+        this.props.onShowError('Failed to load savegames',
+                               err, undefined,
+                               ['ENOENT', 'ENOTFOUND'].indexOf(err.code) === -1);
       });
   }
 
