@@ -59,7 +59,7 @@ export function refreshSavegames(savesPath: string,
   return turbowalk(savesPath, entries => {
     saves = saves.concat(entries.filter(file => isSavegame(file)));
   }, { recurse: false })
-    .catch(err => (err.code === 'ENOENT')
+    .catch(err => (['ENOENT', 'ENOTFOUND'].indexOf(err.code) !== -1)
       ? Promise.resolve()
       : Promise.reject(err))
     .then(() => {
