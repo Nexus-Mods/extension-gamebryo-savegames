@@ -448,6 +448,10 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
     const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);
 
+    if (importProfileId === currentProfile.id) {
+      return;
+    }
+
     let allowErrorReport: boolean = true;
     let userCancelled: boolean = false;
     onShowDialog('question', t('Import Savegames'), {
@@ -508,6 +512,9 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
             t('Not all savegames could be imported'),
             failedCopies.join('\n'), { allowReport: allowErrorReport });
         }
+      })
+      .catch(err => {
+        this.context.api.showErrorNotification('Failed to import savegames', err);
       });
   }
 }
