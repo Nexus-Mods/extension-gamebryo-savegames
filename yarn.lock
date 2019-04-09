@@ -2,20 +2,17 @@
 # yarn lockfile v1
 
 
+"@babel/runtime@^7.3.1":
+  version "7.4.3"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.4.3.tgz#79888e452034223ad9609187a0ad1fe0d2ad4bdc"
+  integrity sha512-9lsJwJLxDh/T3Q3SZszfWOTkk3pHbkmH+3KY+zwIDmsNlxsumuhS2TH3NIpktU4kNvfzy+k3eLT7aTJSPTo0OA==
+  dependencies:
+    regenerator-runtime "^0.13.2"
+
 "@types/history@^2":
   version "2.0.49"
   resolved "https://registry.yarnpkg.com/@types/history/-/history-2.0.49.tgz#5f626148a0de1e4eb334e66076d15c1a53aa45e2"
   integrity sha512-P/aCyGbdBY4ysn7F6M168Op8wefgv69rvidNRsLmQwWVQ7D3Vlr7APIq46CxzSA9vB1GIgV97ToZxLJ/s4hXnA==
-
-"@types/i18next@^2":
-  version "2.3.41"
-  resolved "https://registry.yarnpkg.com/@types/i18next/-/i18next-2.3.41.tgz#5a3ebdcb4942052ca2ef71c4f6341438c57cb18c"
-  integrity sha512-8BLa2+5itmjj3eJI8zbE58Z+I5UEYP7YKHlEn6E4ZJsr8DkpFePtIvt8s0FtBHKPHA1K+HP0LkEgmQRAb9Kbqw==
-
-"@types/i18next@^8.4.0":
-  version "8.4.6"
-  resolved "https://registry.yarnpkg.com/@types/i18next/-/i18next-8.4.6.tgz#d03e36289c913dc624378f5f1c8925e553e6d6c8"
-  integrity sha512-ZiSCqW8j9/gQCYixz1nMhyCprSGh3rwdyX+FHAzEN+bMCmc7yCYjNutl6jvMYSxSIGeL0CLEXPM8Nlk2lE0t5w==
 
 "@types/immutability-helper@^2.6.3":
   version "2.6.3"
@@ -47,14 +44,6 @@
   integrity sha512-xAvZiGhQlEhjStoKktoai8CelXVFBaSN6JX4vy1UQioRba3c2vum1TGzR0thHoEauZtIwzWg8mos0AHu2ne4jw==
   dependencies:
     "@types/node" "*"
-    "@types/react" "*"
-
-"@types/react-i18next@^1.7.5":
-  version "1.7.12"
-  resolved "https://registry.yarnpkg.com/@types/react-i18next/-/react-i18next-1.7.12.tgz#0e34c2c16a9e68680563b1439a7aa8c97b4c1487"
-  integrity sha512-h2H/XmL6Sm0ZhKVHddx5p5QKXZd7ggNJ8F7VqSV9ohBX+zb3QzTrrljygGgRxouuonCfkow67dFNhey1zT9qmw==
-  dependencies:
-    "@types/i18next" "^2"
     "@types/react" "*"
 
 "@types/react-redux@4.4.35":
@@ -1543,10 +1532,12 @@ https-browserify@^1.0.0:
   resolved "https://registry.yarnpkg.com/https-browserify/-/https-browserify-1.0.0.tgz#ec06c10e0a34c0f2faf199f7fd7fc78fffd03c73"
   integrity sha1-7AbBDgo0wPL68Zn3/X/Hj//QPHM=
 
-i18next@^3.5.1:
-  version "3.5.2"
-  resolved "https://registry.yarnpkg.com/i18next/-/i18next-3.5.2.tgz#930390d5c318ceaa4858b52dd0e40e6b203f9f41"
-  integrity sha1-kwOQ1cMYzqpIWLUt0OQOayA/n0E=
+i18next@^15.0.9:
+  version "15.0.9"
+  resolved "https://registry.yarnpkg.com/i18next/-/i18next-15.0.9.tgz#42536407a921bb5a8535a4c090a26f16827a1884"
+  integrity sha512-IdVj7DqErUuMbGuj2dFT431T7zKlmDci63eae6pNA/bMwgBZKT74/KnwHXE0WH7ivo2EV/LNme4pP4Yw6vB79w==
+  dependencies:
+    "@babel/runtime" "^7.3.1"
 
 ieee754@^1.1.4:
   version "1.1.12"
@@ -2658,6 +2649,11 @@ regenerator-runtime@^0.11.0:
   resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.11.1.tgz#be05ad7f9bf7d22e056f9726cee5017fbf19e2e9"
   integrity sha512-MguG95oij0fC3QV3URf4V2SDYGJhJnJGqvIIgdECeODCT98wSWDAJ94SSuVpYQUoTcGUIL6L4yNB7j1DFFHSBg==
 
+regenerator-runtime@^0.13.2:
+  version "0.13.2"
+  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.13.2.tgz#32e59c9a6fb9b1a4aff09b4930ca2d4477343447"
+  integrity sha512-S/TQAZJO+D3m9xeN1WTI8dLKBBiRgXBlTJvbWjCThHWZj9EvHK70Ff50/tYj2J/fvBY6JtFVwRuazHN2E7M9BA==
+
 regex-not@^1.0.0, regex-not@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/regex-not/-/regex-not-1.0.2.tgz#1f4ece27e00b0b65e0247a6810e6a85d83a5752c"
@@ -3199,8 +3195,8 @@ tunnel-agent@^0.6.0:
     safe-buffer "^5.0.1"
 
 turbowalk@Nexus-Mods/node-turbowalk:
-  version "1.3.5"
-  resolved "https://codeload.github.com/Nexus-Mods/node-turbowalk/tar.gz/ff7a1a676f1e7e4674f54ce189c3f868413bef0a"
+  version "1.3.7"
+  resolved "https://codeload.github.com/Nexus-Mods/node-turbowalk/tar.gz/abdfd06657ec80717d0500079dc7eaf18c565e87"
   dependencies:
     autogypi "^0.2.2"
     fs-extra-promise "^1.0.1"
@@ -3333,8 +3329,8 @@ vm-browserify@0.0.4:
     indexof "0.0.1"
 
 vortex-api@Nexus-Mods/vortex-api:
-  version "0.17.4-r1"
-  resolved "https://codeload.github.com/Nexus-Mods/vortex-api/tar.gz/5c73ac0b2ad714afc8d4f34afc9c74680471e9aa"
+  version "0.17.10-r1"
+  resolved "https://codeload.github.com/Nexus-Mods/vortex-api/tar.gz/4a28cef109140b43085db6447cc84bc008ce967a"
 
 vortex-parse-ini@Nexus-Mods/vortex-parse-ini:
   version "0.2.5"

@@ -12,7 +12,7 @@ import * as Promise from 'bluebird';
 import * as path from 'path';
 import * as React from 'react';
 import { Alert, FormControl, Panel } from 'react-bootstrap';
-import { translate } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
@@ -553,6 +553,6 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
 }
 
 export default
-  translate(['common'], { wait: false })(
-    connect(mapStateToProps, mapDispatchToProps)(SavegameList),
+  withTranslation(['common'])(
+    connect(mapStateToProps, mapDispatchToProps)(SavegameList) as any,
   ) as React.ComponentClass<{}>;
