@@ -1333,8 +1333,8 @@ fstream@^1.0.0, fstream@^1.0.2:
     rimraf "2"
 
 gamebryo-savegame@Nexus-Mods/node-gamebryo-savegames:
-  version "1.2.4"
-  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/526e4e84087af189be628d73d11a28188e291c24"
+  version "1.2.5"
+  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/cc9a541a5928d2e5bb3c2812ef32ab4fc8f4edc5"
   dependencies:
     autogypi "^0.2.2"
     copyfiles "^2.1.0"
