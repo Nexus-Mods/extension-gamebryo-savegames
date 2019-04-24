@@ -26,7 +26,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
           || (getScreenshot(savegame.id) === undefined)) {
         if (!loading.has(savegame.id)) {
           loading.add(savegame.id);
-          loadSaveGame(savegame.filePath, (save: ISavegame) => {
+          loadSaveGame(savegame.filePath, savegame.fileSize, (save: ISavegame) => {
             api.store.dispatch(updateSavegame(save.id, save));
           }, true)
             .then(() => {
@@ -118,6 +118,20 @@ function getSavegameAttributes(api: types.IExtensionApi,
       description: 'Name of the file',
       icon: 'file-picture-o',
       calc: (savegame: ISavegame) => savegame.attributes['filename'],
+      placement: 'both',
+      isToggleable: true,
+      isSortable: true,
+      isDefaultVisible: false,
+      filter: new TableTextFilter(true),
+      edit: {},
+    },
+    {
+      id: 'filesize',
+      name: 'Filesize',
+      description: 'Size of the file',
+      icon: 'file-picture-o',
+      calc: (savegame: ISavegame) => savegame.fileSize,
+      customRenderer: (savegame: ISavegame) => <>{util.bytesToString(savegame.fileSize)}</>,
       placement: 'both',
       isToggleable: true,
       isSortable: true,

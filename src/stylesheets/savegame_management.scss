@@ -5,6 +5,7 @@
   object-fit: contain;
 }
 
+
 #table-savegames {
   // prevent word wrap
   .table-header-cell {
@@ -14,6 +15,12 @@
   .header-location {
     // use up remaining space
     width: 50%;
+  }
+  .header-filesize {
+    min-width: 100px;
+  }
+  .cell-filesize {
+    text-align: center;
   }
 }
 

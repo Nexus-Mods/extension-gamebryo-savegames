@@ -68,7 +68,7 @@ export function refreshSavegames(savesPath: string,
         truncated = true;
         saves = saves.slice(0, MAX_SAVEGAMES);
       }
-      return Promise.map(saves, save => loadSaveGame(save.filePath, onAddSavegame, false)
+      return Promise.map(saves, save => loadSaveGame(save.filePath, save.size, onAddSavegame, false)
         .catch(err => {
           failedReads.push(err.message);
         }));
@@ -90,7 +90,8 @@ export function getScreenshot(id: string): Uint8ClampedArray {
   }
 }
 
-export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) => void,
+export function loadSaveGame(filePath: string, fileSize: number,
+                             onAddSavegame: (save: ISavegame) => void,
                              full: boolean, tries: number = 2): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     try {
@@ -108,6 +109,7 @@ export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) 
         const save: ISavegame = {
           id,
           filePath,
+          fileSize,
           attributes: {
             id: sg.saveNumber,
             name: sg.characterName,
@@ -144,6 +146,6 @@ export function loadSaveGame(filePath: string, onAddSavegame: (save: ISavegame) 
   })
     .then(() => maintainCache())
     .catch(err => (tries > 0)
-      ? loadSaveGame(filePath, onAddSavegame, full, tries - 1)
+      ? loadSaveGame(filePath, fileSize, onAddSavegame, full, tries - 1)
       : Promise.reject(err));
 }
