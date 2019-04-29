@@ -17,7 +17,10 @@
     width: 50%;
   }
   .header-filesize {
-    min-width: 100px;
+    min-width: 8em;
+  }
+  .header-creationtime {
+    min-width: 10em;
   }
   .cell-filesize {
     text-align: center;
