@@ -3329,8 +3329,8 @@ vm-browserify@0.0.4:
     indexof "0.0.1"
 
 vortex-api@Nexus-Mods/vortex-api:
-  version "0.17.10-r1"
-  resolved "https://codeload.github.com/Nexus-Mods/vortex-api/tar.gz/4a28cef109140b43085db6447cc84bc008ce967a"
+  version "0.18.1-r1"
+  resolved "https://codeload.github.com/Nexus-Mods/vortex-api/tar.gz/082ca166bbc4658517f37288eacbd26de66d8a95"
 
 vortex-parse-ini@Nexus-Mods/vortex-parse-ini:
   version "0.2.5"
