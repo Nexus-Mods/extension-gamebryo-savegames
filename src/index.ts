@@ -68,7 +68,10 @@ function genUpdateSavegameHandler(api: types.IExtensionApi) {
       .then((failedReadsInner: string[]) => {
         if (failedReadsInner.length > 0) {
           api.showErrorNotification('Some saves couldn\'t be read',
-            failedReadsInner.join('\n'), { allowReport: false });
+            failedReadsInner.join('\n'), {
+              allowReport: false,
+              id: 'saves-not-read',
+            });
         }
       })
       .finally(() => {
