@@ -1,6 +1,6 @@
 import { ISavegame } from '../types/ISavegame';
 
-import savegameLibInit, { Dimensions } from 'gamebryo-savegame';
+import { Dimensions } from 'gamebryo-savegame';
 import * as React from 'react';
 import { log } from 'vortex-api';
 import { getScreenshot } from '../util/refreshSavegames';
