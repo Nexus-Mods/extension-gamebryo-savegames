@@ -66,7 +66,7 @@ class PluginList extends React.Component<IProps, IComponentState> {
     const { discoveredGames, gameMode } = this.props;
     const discovery = discoveredGames[gameMode];
     const game = util.getGame(gameMode);
-    if ((game === undefined) || (discovery === undefined)) {
+    if ((game === undefined) || (discovery === undefined) || (discovery.path === undefined)) {
       this.setState(update(this.state, {
         installedESPs: { $set: new Set<string>() },
       }));
