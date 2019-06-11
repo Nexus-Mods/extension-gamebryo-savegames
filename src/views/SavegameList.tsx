@@ -321,7 +321,19 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     }
 
     const game = util.getGame(gameMode);
-    const modPath = game.getModPaths(discoveredGames[gameMode].path)[''];
+    const discovery = util.getSafe(discoveredGames, [gameMode], undefined);
+    if ((game === undefined)
+    || (discovery === undefined)
+    || (discovery.path === undefined)) {
+      // How is this even possible ?
+      onShowError('Failed to restore plugins',
+                  'Your active game is no longer discovered by Vortex; '
+                + 'please manually add your game, or run the discovery '
+                + 'scan on the games page.', undefined, true);
+      return;
+    }
+
+    const modPath = game.getModPaths(discovery.path)[''];
 
     const notificationId = 'restore-plugins-id';
     onShowActivity('Restoring plugins', notificationId);
