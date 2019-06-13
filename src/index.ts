@@ -71,6 +71,7 @@ function genUpdateSavegameHandler(api: types.IExtensionApi) {
             failedReadsInner.join('\n'), {
               allowReport: false,
               id: 'saves-not-read',
+              isBBCode: true,
             });
         }
       })

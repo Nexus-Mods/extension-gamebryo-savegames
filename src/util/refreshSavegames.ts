@@ -70,7 +70,7 @@ export function refreshSavegames(savesPath: string,
       }
       return Promise.map(saves, save => loadSaveGame(save.filePath, save.size, onAddSavegame, false)
         .catch(err => {
-          failedReads.push(err.message);
+          failedReads.push(`[b]${path.basename(save.filePath)}[/b] - ${err.message}`);
         }));
     })
     .then(() => ({ failedReads, truncated }));
