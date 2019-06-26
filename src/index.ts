@@ -1,11 +1,13 @@
 import { clearSavegames, setSavegamePath,
    setSavegames, showTransferDialog } from './actions/session';
 import { sessionReducer } from './reducers/session';
+import { settingsReducer } from './reducers/settings';
 import { ISavegame } from './types/ISavegame';
 import {gameSupported, iniPath, mygamesPath} from './util/gameSupport';
 import { profileSavePath } from './util/profileSavePath';
 import { refreshSavegames } from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';
+import Settings from './views/Settings';
 
 import * as Promise from 'bluebird';
 import { remote } from 'electron';
@@ -81,6 +83,74 @@ function genUpdateSavegameHandler(api: types.IExtensionApi) {
   };
 }
 
+function getSavesPath(profile: types.IProfile) {
+  const savePath = profileSavePath(profile);
+
+  return path.join(mygamesPath(profile.gameId), savePath);
+}
+
+function startStopWatcher(state: any, updateDebouncer: util.Debouncer, profileId?: string) {
+  if (fsWatcher !== undefined) {
+    fsWatcher.close();
+    fsWatcher = undefined;
+  }
+
+  if (!state.settings.saves.monitorEnabled) {
+    return;
+  }
+
+  const profile = (profileId === undefined)
+    ? selectors.activeProfile(state)
+    : selectors.profileById(state, profileId);
+
+  if (profile === undefined) {
+    return;
+  }
+
+  if (!gameSupported(profile.gameId)) {
+    return;
+  }
+
+  const savesPath = getSavesPath(profile);
+
+  const onUpdate = () => {
+    updateDebouncer.schedule(undefined, profileId, savesPath);
+  };
+
+  try {
+    fsWatcher =
+      fs.watch(savesPath, {}, (evt: string, filename: string) => {
+        // refresh on file change
+        onUpdate();
+      });
+    fsWatcher.on('error', error => {
+      // going by the amount of feedback on this it appears like it's a very common thing to
+      // delete your savegame directory...
+      log('warn', 'failed to watch savegame directory', { fullSavesPath: savesPath, error });
+      fsWatcher.close();
+      fsWatcher = undefined;
+    });
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(err);
+  }
+}
+
+function openSavegamesDirectory(api: types.IExtensionApi, profileId: string) {
+  const state: types.IState = api.store.getState();
+  const profile = state.persistent.profiles[profileId];
+  const hasLocalSaves = util.getSafe(profile, ['features', 'local_saves'], false);
+  const profileSavesPath = hasLocalSaves
+    ? path.join(mygamesPath(profile.gameId), 'Saves', profile.id)
+    : path.join(mygamesPath(profile.gameId), 'Saves');
+  fs.ensureDirAsync(profileSavesPath)
+    .then(() => util.opn(profileSavesPath))
+    .catch(err => api.showErrorNotification(
+      'Failed to open savegame directory', err, { allowReport: (err as any).code !== 'ENOENT' }));
+
+}
+
+
 interface IExtensionContextExt extends types.IExtensionContext {
   registerProfileFeature: (featureId: string, type: string, icon: string,
                            label: string, description: string, supported: () => boolean) => void;
@@ -89,6 +159,11 @@ interface IExtensionContextExt extends types.IExtensionContext {
 function init(context: IExtensionContextExt): boolean {
   context.registerAction('savegames-icons', 200, 'transfer', {}, 'Transfer Save Games', () => {
     context.api.store.dispatch(showTransferDialog(true));
+  });
+
+  context.registerAction('savegames-icons', 100, 'refresh', {}, 'Refresh', () => {
+    const profile = selectors.activeProfile(context.api.store.getState());
+    update.runNow(undefined, profile.id, getSavesPath(profile));
   });
 
   context.registerMainPage('savegame', 'Save Games', SavegameList, {
@@ -100,27 +175,24 @@ function init(context: IExtensionContextExt): boolean {
   const update = new util.Debouncer(genUpdateSavegameHandler(context.api), 1000);
 
   context.registerReducer(['session', 'saves'], sessionReducer);
+  context.registerReducer(['settings', 'saves'], settingsReducer);
   context.registerProfileFeature(
     'local_saves', 'boolean', 'savegame', 'Save Games', 'This profile has its own save games',
     () => gameSupported(selectors.activeGameId(context.api.store.getState())));
 
   context.registerAction('profile-actions', 100, 'open-ext', {},
                          'Open Save Games', (instanceIds: string[]) => {
-    const state: types.IState = context.api.store.getState();
-    const profile = state.persistent.profiles[instanceIds[0]];
-    const hasLocalSaves = util.getSafe(profile, ['features', 'local_saves'], false);
-    const profileSavesPath = hasLocalSaves
-        ? path.join(mygamesPath(profile.gameId), 'Saves', profile.id)
-        : path.join(mygamesPath(profile.gameId), 'Saves');
-    fs.ensureDirAsync(profileSavesPath)
-      .then(() => util.opn(profileSavesPath))
-      .catch(err => context.api.showErrorNotification(
-        'Failed to open savegame directory', err, { allowReport: (err as any).code !== 'ENOENT' }));
+    openSavegamesDirectory(context.api, instanceIds[0]);
   }, (instanceIds: string[]) => {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
     return gameSupported(profile.gameId);
   });
+
+  context.registerSettings('Workarounds', Settings, () => ({
+    onToggled: () => startStopWatcher(context.api.store.getState(), update),
+  }), () =>
+    gameSupported(selectors.activeGameId(context.api.store.getState())));
 
   context.once(() => {
     const store: Redux.Store<any> = context.api.store;
@@ -178,6 +250,7 @@ function init(context: IExtensionContextExt): boolean {
 
     context.api.events.on('profile-did-change', (profileId: string) => {
       const state = context.api.store.getState();
+
       if (fsWatcher !== undefined) {
         fsWatcher.close();
         fsWatcher = undefined;
@@ -195,28 +268,12 @@ function init(context: IExtensionContextExt): boolean {
       const savePath = profileSavePath(prof);
       store.dispatch(setSavegamePath(savePath));
 
-      const savesPath = path.join(mygamesPath(prof.gameId), savePath);
-      fs.ensureDirAsync(savesPath)
+      const fullSavesPath = path.join(mygamesPath(prof.gameId), savePath);
+    
+      fs.ensureDirAsync(fullSavesPath)
       .then(() => {
-        // always refresh on profile change!
-        update.schedule(undefined, profileId, savesPath);
-        try {
-          fsWatcher =
-            fs.watch(savesPath, {}, (evt: string, filename: string) => {
-              // refresh on file change
-              update.schedule(undefined, profileId, savesPath);
-            });
-          fsWatcher.on('error', error => {
-            // going by the amount of feedback on this it appears like it's a very common thing to
-            // delete your savegame directory...
-            log('warn', 'failed to watch savegame directory', { savesPath, error });
-            fsWatcher.close();
-            fsWatcher = undefined;
-          });
-          return Promise.resolve();
-        } catch (err) {
-          return Promise.reject(err);
-        }
+        update.schedule(undefined, profileId, fullSavesPath);
+        startStopWatcher(state, update, profileId);
       })
       .catch(err => {
         context.api.showErrorNotification('Can\'t watch saves directory for changes', err);

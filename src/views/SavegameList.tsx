@@ -565,6 +565,6 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
 }
 
 export default
-  withTranslation(['common'])(
+  withTranslation(['common', 'gamebryo-savegames'])(
     connect(mapStateToProps, mapDispatchToProps)(SavegameList) as any,
   ) as React.ComponentClass<{}>;
