@@ -96,7 +96,7 @@ function startStopWatcher(state: any, updateDebouncer: util.Debouncer, profileId
   }
 
   if (!state.settings.saves.monitorEnabled) {
-    return;
+    return Promise.resolve();
   }
 
   const profile = (profileId === undefined)
@@ -104,11 +104,11 @@ function startStopWatcher(state: any, updateDebouncer: util.Debouncer, profileId
     : selectors.profileById(state, profileId);
 
   if (profile === undefined) {
-    return;
+    return Promise.resolve();
   }
 
   if (!gameSupported(profile.gameId)) {
-    return;
+    return Promise.resolve();
   }
 
   const savesPath = getSavesPath(profile);
@@ -117,23 +117,26 @@ function startStopWatcher(state: any, updateDebouncer: util.Debouncer, profileId
     updateDebouncer.schedule(undefined, profileId, savesPath);
   };
 
-  try {
-    fsWatcher =
-      fs.watch(savesPath, {}, (evt: string, filename: string) => {
-        // refresh on file change
-        onUpdate();
-      });
-    fsWatcher.on('error', error => {
-      // going by the amount of feedback on this it appears like it's a very common thing to
-      // delete your savegame directory...
-      log('warn', 'failed to watch savegame directory', { fullSavesPath: savesPath, error });
-      fsWatcher.close();
-      fsWatcher = undefined;
+  return fs.ensureDirAsync(savesPath)
+    .then(() => {
+      try {
+        fsWatcher =
+          fs.watch(savesPath, {}, (evt: string, filename: string) => {
+            // refresh on file change
+            onUpdate();
+          });
+        fsWatcher.on('error', error => {
+          // going by the amount of feedback on this it appears like it's a very common thing to
+          // delete your savegame directory...
+          log('warn', 'failed to watch savegame directory', { fullSavesPath: savesPath, error });
+          fsWatcher.close();
+          fsWatcher = undefined;
+        });
+        return Promise.resolve();
+      } catch (err) {
+        return Promise.reject(err);
+      }
     });
-    return Promise.resolve();
-  } catch (err) {
-    return Promise.reject(err);
-  }
 }
 
 function openSavegamesDirectory(api: types.IExtensionApi, profileId: string) {
@@ -190,9 +193,11 @@ function init(context: IExtensionContextExt): boolean {
   });
 
   context.registerSettings('Workarounds', Settings, () => ({
-    onToggled: () => startStopWatcher(context.api.store.getState(), update),
-  }), () =>
-    gameSupported(selectors.activeGameId(context.api.store.getState())));
+    onToggled: () => startStopWatcher(context.api.store.getState(), update)
+      .catch(err => {
+        context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
+      }),
+  }), () => gameSupported(selectors.activeGameId(context.api.store.getState())));
 
   context.once(() => {
     const store: Redux.Store<any> = context.api.store;
@@ -268,13 +273,7 @@ function init(context: IExtensionContextExt): boolean {
       const savePath = profileSavePath(prof);
       store.dispatch(setSavegamePath(savePath));
 
-      const fullSavesPath = path.join(mygamesPath(prof.gameId), savePath);
-    
-      fs.ensureDirAsync(fullSavesPath)
-      .then(() => {
-        update.schedule(undefined, profileId, fullSavesPath);
-        startStopWatcher(state, update, profileId);
-      })
+      startStopWatcher(state, update, profileId)
       .catch(err => {
         context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
       });
