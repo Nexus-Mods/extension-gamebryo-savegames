@@ -31,7 +31,7 @@
     "babel-loader": "^7.1.4",
     "babel-polyfill": "^6.13.0",
     "bluebird": "^3.4.6",
-    "copyfiles": "^1.0.0",
+    "copyfiles": "^2.1.0",
     "gamebryo-savegame": "Nexus-Mods/node-gamebryo-savegames",
     "i18next": "^15.0.9",
     "immutability-helper": "^2.8.1",
@@ -39,11 +39,12 @@
     "prop-types": "^15.6.1",
     "redux-act": "^1.7.3",
     "rm-local-modules": "^0.0.2",
-    "ts-loader": "^2.3.4",
+    "ts-loader": "^6.0.4",
     "turbowalk": "Nexus-Mods/node-turbowalk",
     "vortex-api": "Nexus-Mods/vortex-api",
     "vortex-parse-ini": "Nexus-Mods/vortex-parse-ini",
-    "webpack": "^3.8.1"
+    "webpack": "^4.35.2",
+    "webpack-cli": "3.3.5"
   },
   "dependencies": {
     "redux": "3.7.2"

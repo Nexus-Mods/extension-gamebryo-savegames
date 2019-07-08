@@ -120,11 +120,10 @@ function startStopWatcher(state: any, updateDebouncer: util.Debouncer, profileId
   return fs.ensureDirAsync(savesPath)
     .then(() => {
       try {
-        fsWatcher =
-          fs.watch(savesPath, {}, (evt: string, filename: string) => {
-            // refresh on file change
-            onUpdate();
-          });
+        fsWatcher = fs.watch(savesPath, {}, (evt: string, filename: string) => {
+          // refresh on file change
+          onUpdate();
+        });
         fsWatcher.on('error', error => {
           // going by the amount of feedback on this it appears like it's a very common thing to
           // delete your savegame directory...
@@ -132,6 +131,8 @@ function startStopWatcher(state: any, updateDebouncer: util.Debouncer, profileId
           fsWatcher.close();
           fsWatcher = undefined;
         });
+        // initial update
+        onUpdate();
         return Promise.resolve();
       } catch (err) {
         return Promise.reject(err);
@@ -152,7 +153,6 @@ function openSavegamesDirectory(api: types.IExtensionApi, profileId: string) {
       'Failed to open savegame directory', err, { allowReport: (err as any).code !== 'ENOENT' }));
 
 }
-
 
 interface IExtensionContextExt extends types.IExtensionContext {
   registerProfileFeature: (featureId: string, type: string, icon: string,

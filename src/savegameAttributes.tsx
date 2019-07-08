@@ -37,11 +37,16 @@ function getSavegameAttributes(api: types.IExtensionApi,
                 err.path = savegame.filePath;
               }
               api.showErrorNotification('Failed to load screenshot', err, {
-                allowReport: err.code !== 'ENOENT',
+                allowReport: false,
                 message: savegame.filePath,
                 attachments: [
-                  { id: 'savegame', type: 'file', data: savegame.filePath, description: 'The broken savegame' },
-                ]
+                  {
+                    id: 'savegame',
+                    type: 'file',
+                    data: savegame.filePath,
+                    description: 'The broken savegame',
+                  },
+                ],
               });
             });
         }
