@@ -41,7 +41,7 @@ const gameSupport: { [key: string]: IGameSupport } = {
   },
   skyrimvr: {
     mygamesPath: 'Skyrim VR',
-    iniName: 'Skyrim.ini',
+    iniName: 'SkyrimVR.ini',
     prefIniName: 'SkyrimPrefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'skse'));
