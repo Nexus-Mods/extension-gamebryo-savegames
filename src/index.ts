@@ -194,6 +194,7 @@ function init(context: IExtensionContextExt): boolean {
 
   context.registerSettings('Workarounds', Settings, () => ({
     onToggled: () => startStopWatcher(context.api.store.getState(), update)
+      .catch(util.UserCanceled, () => Promise.resolve())
       .catch(err => {
         context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
       }),
@@ -274,6 +275,7 @@ function init(context: IExtensionContextExt): boolean {
       store.dispatch(setSavegamePath(savePath));
 
       startStopWatcher(state, update, profileId)
+      .catch(util.UserCanceled, () => Promise.resolve())
       .catch(err => {
         context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
       });
