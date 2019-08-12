@@ -1,6 +1,6 @@
 import * as Promise from 'bluebird';
 import * as path from 'path';
-import { fs } from 'vortex-api';
+import { fs, log } from 'vortex-api';
 
 /**
  * copy or move a list of savegame files
@@ -21,7 +21,14 @@ function transferSavegames(savegames: string[],
     operation(path.join(sourceSavePath, save),
               path.join(destSavePath, save))
     .catch(err => {
-      failedCopies.push(save + ' - ' + err.message);
+      if (err.message.indexOf('are the same file') !== -1) {
+        // User attempted to copy the same file onto itself;
+        //  no point to highlight this as an error given that the save
+        //  file is already there. We are going to log this though.
+        log('warn', 'file already exists', err.message);
+      } else {
+        failedCopies.push(save + ' - ' + err.message);
+      }
     }))
     .then(() => Promise.resolve(failedCopies));
 }
