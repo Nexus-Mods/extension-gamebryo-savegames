@@ -77,6 +77,11 @@ function genUpdateSavegameHandler(api: types.IExtensionApi) {
             });
         }
       })
+      .catch(err => {
+        api.showErrorNotification('Failed to read save games', err, {
+          id: 'saves-not-read',
+        });
+      })
       .finally(() => {
         api.store.dispatch(actions.stopActivity('savegames', 'Loading'));
       });
