@@ -377,8 +377,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     let doRemoveSavegame = true;
 
     onShowDialog('question', t('Confirm Deletion'), {
-      message: t('Do you really want to remove these files?\n{{saveIds}}',
-        { replace: { saveIds: instanceIds.join('\n') } }),
+      text: t('Do you really want to remove these files?'),
+      message: instanceIds.join('\n'),
       options: {
         translated: true,
       },
@@ -467,9 +467,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     let allowErrorReport: boolean = true;
     let userCancelled: boolean = false;
     onShowDialog('question', t('Import Savegames'), {
-      message: t('The following files will be imported:\n{{saveIds}}\n'
-        + 'Do you want to move them or create a copy?',
-        { replace: { saveIds: fileNames.join('\n') } }),
+      text: t('The following files will be imported'),
+      message: fileNames.join('\n'),
       options: {
         translated: true,
       },
@@ -484,17 +483,20 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           return;
         }
 
-        const sourceSavePath = path.resolve(mygamesPath(currentProfile.gameId),
+        const { gameId } = currentProfile;
+
+        const sourceSavePath = path.resolve(mygamesPath(gameId),
           importProfileId !== '__global'
           ? profileSavePath(profiles[importProfileId])
           : profileSavePath(currentProfile, true));
 
-        const destSavePath = path.resolve(mygamesPath(currentProfile.gameId),
+        const destSavePath = path.resolve(mygamesPath(gameId),
                                           profileSavePath(currentProfile));
 
         const keepSource = result.action === 'Copy';
         return fs.ensureDirAsync(destSavePath)
-          .then(() => transferSavegames(fileNames, sourceSavePath, destSavePath, keepSource))
+          .then(() => transferSavegames(gameId, fileNames, sourceSavePath,
+                                        destSavePath, keepSource))
           .catch(err => {
             allowErrorReport = ['EPERM', 'ENOSPC'].indexOf(err.code) === -1;
             const logLevel = allowErrorReport ? 'error' : 'warn';
