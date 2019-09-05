@@ -28,6 +28,12 @@ function transferSavegames(gameId: string,
     operation(path.join(sourceSavePath, save),
               path.join(destSavePath, save))
     .catch(err => {
+      if (err.code === 'ENOENT') {
+        // if the file doesn't exist the user has just deleted it in which case: screw it or,
+        // much more likely, this was the copy op for the .*se file and the user didn't use
+        // a script extender.
+        return Promise.resolve();
+      }
       if (err.message.indexOf('are the same file') !== -1) {
         // User attempted to copy the same file onto itself;
         //  no point to highlight this as an error given that the save
