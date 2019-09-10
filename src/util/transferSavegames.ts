@@ -2,7 +2,7 @@ import { saveFiles } from './gameSupport';
 
 import * as Promise from 'bluebird';
 import * as path from 'path';
-import { fs, log } from 'vortex-api';
+import { fs } from 'vortex-api';
 
 /**
  * copy or move a list of savegame files
@@ -34,14 +34,8 @@ function transferSavegames(gameId: string,
         // a script extender.
         return Promise.resolve();
       }
-      if (err.message.indexOf('are the same file') !== -1) {
-        // User attempted to copy the same file onto itself;
-        //  no point to highlight this as an error given that the save
-        //  file is already there. We are going to log this though.
-        log('warn', 'file already exists', err.message);
-      } else {
-        failedCopies.push(save + ' - ' + err.message);
-      }
+      failedCopies.push(save + ' - ' + err.message);
+      return Promise.resolve();
     }))
     .then(() => Promise.resolve(failedCopies));
 }
