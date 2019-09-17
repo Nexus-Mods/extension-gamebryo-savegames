@@ -16,8 +16,6 @@ import * as Redux from 'redux';
 import { actions, fs, log, selectors, types, util } from 'vortex-api';
 import {IniFile} from 'vortex-parse-ini';
 
-let fsWatcher: fs.FSWatcher;
-
 function applySaveSettings(api: types.IExtensionApi,
                            profile: types.IProfile,
                            iniFile: IniFile<any>) {
@@ -94,57 +92,6 @@ function getSavesPath(profile: types.IProfile) {
   return path.join(mygamesPath(profile.gameId), savePath);
 }
 
-function startStopWatcher(state: any, updateDebouncer: util.Debouncer, profileId?: string) {
-  if (fsWatcher !== undefined) {
-    fsWatcher.close();
-    fsWatcher = undefined;
-  }
-
-  if (!state.settings.saves.monitorEnabled) {
-    return Promise.resolve();
-  }
-
-  const profile = (profileId === undefined)
-    ? selectors.activeProfile(state)
-    : selectors.profileById(state, profileId);
-
-  if (profile === undefined) {
-    return Promise.resolve();
-  }
-
-  if (!gameSupported(profile.gameId)) {
-    return Promise.resolve();
-  }
-
-  const savesPath = getSavesPath(profile);
-
-  const onUpdate = () => {
-    updateDebouncer.schedule(undefined, profileId, savesPath);
-  };
-
-  return fs.ensureDirAsync(savesPath)
-    .then(() => {
-      try {
-        fsWatcher = fs.watch(savesPath, {}, (evt: string, filename: string) => {
-          // refresh on file change
-          onUpdate();
-        });
-        fsWatcher.on('error', error => {
-          // going by the amount of feedback on this it appears like it's a very common thing to
-          // delete your savegame directory...
-          log('warn', 'failed to watch savegame directory', { fullSavesPath: savesPath, error });
-          fsWatcher.close();
-          fsWatcher = undefined;
-        });
-        // initial update
-        onUpdate();
-        return Promise.resolve();
-      } catch (err) {
-        return Promise.reject(err);
-      }
-    });
-}
-
 function openSavegamesDirectory(api: types.IExtensionApi, profileId: string) {
   const state: types.IState = api.store.getState();
   const profile = state.persistent.profiles[profileId];
@@ -162,6 +109,117 @@ function openSavegamesDirectory(api: types.IExtensionApi, profileId: string) {
 interface IExtensionContextExt extends types.IExtensionContext {
   registerProfileFeature: (featureId: string, type: string, icon: string,
                            label: string, description: string, supported: () => boolean) => void;
+}
+
+function updateSavegames(api: types.IExtensionApi, update: util.Debouncer) {
+  const state = api.store.getState();
+  const profile = selectors.activeProfile(state);
+
+  if (profile === undefined) {
+    return Promise.resolve();
+  }
+
+  if (!gameSupported(profile.gameId)) {
+    return Promise.resolve();
+  }
+
+  const savesPath = getSavesPath(profile);
+
+  update.schedule(undefined, profile.id, savesPath);
+}
+
+function onProfileChange(api: types.IExtensionApi, profileId: string, update: util.Debouncer) {
+  const {store} = api;
+  const state = store.getState();
+
+  if (profileId === undefined) {
+    return;
+  }
+
+  const prof = selectors.profileById(state, profileId);
+  if (!gameSupported(prof.gameId)) {
+    return;
+  }
+
+  const savePath = profileSavePath(prof);
+  store.dispatch(setSavegamePath(savePath));
+}
+
+function onProfilesModified(store: Redux.Store<any>,
+                            update: util.Debouncer,
+                            oldProfiles: { [profileId: string]: types.IProfile },
+                            newProfiles: { [profileId: string]: types.IProfile }) {
+  const prof = selectors.activeProfile(store.getState());
+  if (prof === undefined) {
+    return;
+  }
+
+  const localSavesBefore =
+    util.getSafe(oldProfiles, [prof.id, 'features', 'local_saves'], false);
+  const localSavesAfter =
+    util.getSafe(newProfiles, [prof.id, 'features', 'local_saves'], false);
+
+  if (localSavesBefore !== localSavesAfter) {
+    store.dispatch(clearSavegames());
+    const savePath = profileSavePath(prof);
+    const savesPath = path.join(mygamesPath(prof.gameId), savePath);
+    store.dispatch(setSavegamePath(savePath));
+    update.schedule(undefined, prof.id, savesPath);
+  }
+}
+
+function once(context: types.IExtensionContext, update: util.Debouncer) {
+  const store: Redux.Store<any> = context.api.store;
+
+  context.api.setStylesheet('savegame-management',
+    path.join(__dirname, 'savegame_management.scss'));
+
+  const onFocus = () => {
+    if (missedUpdate !== undefined) {
+      update.schedule(undefined, missedUpdate.profileId, missedUpdate.savesPath);
+    }
+  };
+
+  remote.getCurrentWindow().on('focus', onFocus);
+
+  window.addEventListener('beforeunload', () => {
+    remote.getCurrentWindow().removeListener('focus', onFocus);
+  });
+
+  context.api.onStateChange(['persistent', 'profiles'],
+    (oldProfiles: { [profileId: string]: types.IProfile },
+     newProfiles: { [profileId: string]: types.IProfile }) => {
+       onProfilesModified(store, update, oldProfiles, newProfiles);
+    });
+
+  context.api.onAsync('apply-settings',
+    (prof: types.IProfile, filePath: string, ini: IniFile<any>) => {
+      log('debug', 'apply savegame settings', { gameId: prof.gameId, filePath });
+      if (gameSupported(prof.gameId)
+        && (filePath.toLowerCase() === iniPath(prof.gameId).toLowerCase())) {
+        applySaveSettings(context.api, prof, ini);
+        store.dispatch(clearSavegames());
+        const savePath = profileSavePath(prof);
+        const savesPath = path.join(mygamesPath(prof.gameId), savePath);
+        update.schedule(undefined, prof.id, savesPath);
+      }
+      return Promise.resolve();
+    });
+
+  context.api.events.on('profile-did-change', (profileId: string) =>
+    onProfileChange(context.api, profileId, update));
+
+  remote.getCurrentWindow().on('focus', () => {
+    updateSavegames(context.api, update);
+  });
+
+  {
+    const profile = selectors.activeProfile(store.getState());
+    if (profile !== undefined) {
+      const savePath = profileSavePath(profile);
+      store.dispatch(setSavegamePath(savePath));
+    }
+  }
 }
 
 function init(context: IExtensionContextExt): boolean {
@@ -197,103 +255,7 @@ function init(context: IExtensionContextExt): boolean {
     return gameSupported(profile.gameId);
   });
 
-  context.registerSettings('Workarounds', Settings, () => ({
-    onToggled: () => startStopWatcher(context.api.store.getState(), update)
-      .catch(util.UserCanceled, () => Promise.resolve())
-      .catch(err => {
-        context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
-      }),
-  }), () => gameSupported(selectors.activeGameId(context.api.store.getState())));
-
-  context.once(() => {
-    const store: Redux.Store<any> = context.api.store;
-
-    context.api.setStylesheet('savegame-management',
-                              path.join(__dirname, 'savegame_management.scss'));
-
-    const onFocus = () => {
-      if (missedUpdate !== undefined) {
-        update.schedule(undefined, missedUpdate.profileId, missedUpdate.savesPath);
-      }
-    };
-
-    remote.getCurrentWindow().on('focus', onFocus);
-
-    window.addEventListener('beforeunload', () => {
-      remote.getCurrentWindow().removeListener('focus', onFocus);
-    });
-
-    context.api.onStateChange(['persistent', 'profiles'],
-                              (oldProfiles: { [profileId: string]: types.IProfile },
-                               newProfiles: { [profileId: string]: types.IProfile }) => {
-      const prof = selectors.activeProfile(store.getState());
-      if (prof === undefined) {
-        return;
-      }
-
-      const localSavesBefore =
-        util.getSafe(oldProfiles, [prof.id, 'features', 'local_saves'], false);
-      const localSavesAfter =
-        util.getSafe(newProfiles, [prof.id, 'features', 'local_saves'], false);
-
-      if (localSavesBefore !== localSavesAfter) {
-        store.dispatch(clearSavegames());
-        const savePath = profileSavePath(prof);
-        const savesPath = path.join(mygamesPath(prof.gameId), savePath);
-        store.dispatch(setSavegamePath(savePath));
-        update.schedule(undefined, prof.id, savesPath);
-      }
-    });
-
-    context.api.onAsync('apply-settings',
-                        (prof: types.IProfile, filePath: string, ini: IniFile<any>) => {
-      log('debug', 'apply savegame settings', { gameId: prof.gameId, filePath });
-      if (gameSupported(prof.gameId)
-          && (filePath.toLowerCase() === iniPath(prof.gameId).toLowerCase())) {
-        applySaveSettings(context.api, prof, ini);
-        store.dispatch(clearSavegames());
-        const savePath = profileSavePath(prof);
-        const savesPath = path.join(mygamesPath(prof.gameId), savePath);
-        update.schedule(undefined, prof.id, savesPath);
-      }
-      return Promise.resolve();
-    });
-
-    context.api.events.on('profile-did-change', (profileId: string) => {
-      const state = context.api.store.getState();
-
-      if (fsWatcher !== undefined) {
-        fsWatcher.close();
-        fsWatcher = undefined;
-      }
-
-      if (profileId === undefined) {
-        return;
-      }
-
-      const prof = selectors.profileById(state, profileId);
-      if (!gameSupported(prof.gameId)) {
-        return;
-      }
-
-      const savePath = profileSavePath(prof);
-      store.dispatch(setSavegamePath(savePath));
-
-      startStopWatcher(state, update, profileId)
-      .catch(util.UserCanceled, () => Promise.resolve())
-      .catch(err => {
-        context.api.showErrorNotification('Can\'t watch saves directory for changes', err);
-      });
-    });
-
-    {
-      const profile = selectors.activeProfile(store.getState());
-      if (profile !== undefined) {
-        const savePath = profileSavePath(profile);
-        store.dispatch(setSavegamePath(savePath));
-      }
-    }
-  });
+  context.once(() => once(context, update));
 
   return true;
 }
