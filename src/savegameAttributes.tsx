@@ -83,6 +83,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
       placement: 'both',
       isToggleable: true,
       isSortable: true,
+      isGroupable: true,
       filter: new CharacterFilter(),
       edit: {},
       sortFunc: (lhs: string, rhs: string, locale: string): number => {
@@ -92,7 +93,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
         }
         return collator.compare(lhs, rhs);
       },
-    },
+    } as any,
     {
       id: 'level',
       name: 'Character Level',
@@ -115,6 +116,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
       placement: 'both',
       isToggleable: true,
       isSortable: true,
+      isGroupable: true,
       filter: new TableTextFilter(true),
       sortFunc: (lhs: string, rhs: string, locale: string): number => {
         if ((collator === undefined) || (locale !== language)) {
@@ -124,7 +126,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
         return collator.compare(lhs, rhs);
       },
       edit: {},
-    },
+    } as any,
     {
       id: 'filename',
       name: 'Filename',
