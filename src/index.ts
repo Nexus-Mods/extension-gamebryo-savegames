@@ -11,6 +11,7 @@ import Settings from './views/Settings';
 
 import * as Promise from 'bluebird';
 import { remote } from 'electron';
+import * as _ from 'lodash';
 import * as path from 'path';
 import * as Redux from 'redux';
 import { actions, fs, log, selectors, types, util } from 'vortex-api';
@@ -32,6 +33,24 @@ function applySaveSettings(api: types.IExtensionApi,
   store.dispatch(setSavegamePath(savePath));
 }
 
+function saveDictEqual(lhs: { [id: string]: ISavegame },
+                       rhs: { [id: string]: ISavegame }): boolean {
+  if (!_.isEqual(Object.keys(lhs).sort(), Object.keys(rhs).sort())) {
+    return false;
+  }
+
+  const compareDate = (key) => {
+    const lDate = lhs[key].attributes.creationtime;
+    const rDate = rhs[key].attributes.creationtime;
+    if ((lDate === undefined) || (rDate === undefined)) {
+      return true;
+    }
+    return lDate.getTime() === rDate.getTime();
+  };
+
+  return Object.keys(lhs).find(key => !compareDate(key)) === undefined;
+}
+
 function updateSaves(store: Redux.Store<any>,
                      savesPath: string): Promise<string[]> {
   const newSavegames: ISavegame[] = [];
@@ -44,26 +63,26 @@ function updateSaves(store: Redux.Store<any>,
   .then(({ failedReads, truncated }) => Promise.resolve({ newSavegames, failedReads, truncated }))
   .then((result: { newSavegames: ISavegame[], failedReads: string[], truncated: boolean }) => {
     const savesDict: { [id: string]: ISavegame } = {};
-    result.newSavegames.forEach(
-      (save: ISavegame) => { savesDict[save.id] = save; });
+    result.newSavegames.forEach((save: ISavegame) => { savesDict[save.id] = save; });
 
-    store.dispatch(setSavegames(savesDict, result.truncated));
+    const state = store.getState();
+    const oldSaves: { [id: string]: ISavegame } = state.session.saves.saves;
+
+    if (!saveDictEqual(oldSaves, savesDict)) {
+      store.dispatch(setSavegames(savesDict, result.truncated));
+    }
     return Promise.resolve(result.failedReads);
   });
 }
 
-let missedUpdate: { profileId: string, savesPath: string };
-
 function genUpdateSavegameHandler(api: types.IExtensionApi) {
   return (profileId: string, savesPath: string) => {
     if (!remote.getCurrentWindow().isFocused()) {
-      missedUpdate = { profileId, savesPath };
       return Promise.resolve();
     }
 
     api.store.dispatch(actions.startActivity('savegames', 'Loading'));
 
-    missedUpdate = undefined;
     return updateSaves(api.store, savesPath)
       .then((failedReadsInner: string[]) => {
         if (failedReadsInner.length > 0) {
@@ -174,18 +193,6 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
   context.api.setStylesheet('savegame-management',
     path.join(__dirname, 'savegame_management.scss'));
 
-  const onFocus = () => {
-    if (missedUpdate !== undefined) {
-      update.schedule(undefined, missedUpdate.profileId, missedUpdate.savesPath);
-    }
-  };
-
-  remote.getCurrentWindow().on('focus', onFocus);
-
-  window.addEventListener('beforeunload', () => {
-    remote.getCurrentWindow().removeListener('focus', onFocus);
-  });
-
   context.api.onStateChange(['persistent', 'profiles'],
     (oldProfiles: { [profileId: string]: types.IProfile },
      newProfiles: { [profileId: string]: types.IProfile }) => {
@@ -220,6 +227,8 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
       store.dispatch(setSavegamePath(savePath));
     }
   }
+
+  updateSavegames(context.api, update);
 }
 
 function init(context: IExtensionContextExt): boolean {

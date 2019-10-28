@@ -128,7 +128,8 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           {header}
         </MainPage.Header>
         <MainPage.Body>
-          {activity.length > 0 ? this.renderBusy() : this.renderContent(saveActions)}
+          {this.renderContent(saveActions)}
+          {activity.length > 0 ? this.renderBusy() : null}
         </MainPage.Body>
       </MainPage>
     );
@@ -178,14 +179,10 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     if (activity.length > 0) {
       const PanelX: any = Panel;
       return (
-        <FlexLayout.Fixed className='savegames-busy-panel'>
-          <Panel>
-            <PanelX.Body>
-              <Spinner />
-              {t(activity[0])}
-            </PanelX.Body>
-          </Panel>
-        </FlexLayout.Fixed>
+        <div className='savegames-busy-panel'>
+          <Spinner />
+          {t(activity[0])}
+        </div>
       );
     } else {
       return null;
