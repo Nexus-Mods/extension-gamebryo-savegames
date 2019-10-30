@@ -40,11 +40,18 @@ function saveDictEqual(lhs: { [id: string]: ISavegame },
   }
 
   const compareDate = (key) => {
-    const lDate = lhs[key].attributes.creationtime;
-    const rDate = rhs[key].attributes.creationtime;
+    let lDate = lhs[key].attributes.creationtime;
+    let rDate = rhs[key].attributes.creationtime;
     if ((lDate === undefined) || (rDate === undefined)) {
       return true;
     }
+    if (typeof(lDate) === 'string') {
+      lDate = new Date(lDate);
+    }
+    if (typeof(rDate) === 'string') {
+      rDate = new Date(rDate);
+    }
+
     return lDate.getTime() === rDate.getTime();
   };
 
