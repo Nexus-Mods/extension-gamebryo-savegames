@@ -9,7 +9,7 @@ import { refreshSavegames } from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';
 import Settings from './views/Settings';
 
-import * as Promise from 'bluebird';
+import Promise from 'bluebird';
 import { remote } from 'electron';
 import * as _ from 'lodash';
 import * as path from 'path';

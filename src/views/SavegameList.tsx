@@ -8,7 +8,7 @@ import transferSavegames from '../util/transferSavegames';
 
 import getSavegameAttributes from '../savegameAttributes';
 
-import * as Promise from 'bluebird';
+import Promise from 'bluebird';
 import * as path from 'path';
 import * as React from 'react';
 import { Alert, FormControl, Panel } from 'react-bootstrap';

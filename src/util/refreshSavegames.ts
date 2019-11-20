@@ -1,6 +1,6 @@
 import { ISavegame } from '../types/ISavegame';
 
-import * as Promise from 'bluebird';
+import Promise from 'bluebird';
 import savegameLibInit from 'gamebryo-savegame';
 import * as path from 'path';
 import turbowalk, { IEntry } from 'turbowalk';
