@@ -28,11 +28,11 @@ class PluginList extends React.Component<IProps, IComponentState> {
     };
   }
 
-  public componentWillMount() {
+  public componentDidMount() {
     this.refreshInstalled();
   }
 
-  public componentWillReceiveProps(nextProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
     if ((this.props.discoveredGames !== nextProps.discoveredGames)
         || (this.props.gameMode !== nextProps.gameMode)) {
       this.refreshInstalled();
