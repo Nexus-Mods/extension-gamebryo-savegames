@@ -168,7 +168,11 @@ function getSavegameAttributes(api: types.IExtensionApi,
             </p>
           );
         } else {
-          return <p>{util.relativeTime(new Date(savegame.attributes['creationtime']), t)}</p>;
+          const creationTime = new Date(savegame.attributes['creationtime']);
+          const prettyTime = (util as any).userFriendlyTime !== undefined
+            ? (util as any).userFriendlyTime(creationTime, t, api.locale())
+            : util.relativeTime(creationTime, t);
+          return <p>{prettyTime}</p>;
         }
       },
       calc: (savegame: ISavegame) => new Date(savegame.attributes['creationtime']),
