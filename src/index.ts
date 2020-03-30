@@ -223,8 +223,10 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
   context.api.events.on('profile-did-change', (profileId: string) =>
     onProfileChange(context.api, profileId, update));
 
-  remote.getCurrentWindow().on('focus', () => {
-    updateSavegames(context.api, update);
+  const onFocus = () => { updateSavegames(context.api, update); };
+  remote.getCurrentWindow().on('focus', onFocus);
+  remote.getCurrentWindow().on('close', () => {
+    remote.getCurrentWindow().removeListener('focus', onFocus);
   });
 
   {
