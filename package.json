@@ -37,16 +37,14 @@
     "immutability-helper": "^2.8.1",
     "json-loader": "^0.5.4",
     "prop-types": "^15.6.1",
+    "redux": "3.7.2",
     "redux-act": "^1.7.3",
     "rm-local-modules": "^0.0.2",
     "ts-loader": "^6.0.4",
     "turbowalk": "Nexus-Mods/node-turbowalk",
-    "vortex-api": "Nexus-Mods/vortex-api",
+    "vortex-api": "Nexus-Mods/Vortex-api#electron7",
     "vortex-parse-ini": "Nexus-Mods/vortex-parse-ini",
     "webpack": "^4.35.3",
     "webpack-cli": "^3.3.6"
-  },
-  "dependencies": {
-    "redux": "3.7.2"
   }
 }

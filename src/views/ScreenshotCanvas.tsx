@@ -19,7 +19,7 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
     this.updateImage();
   }
 
-  public componentWillReceiveProps(newProps: ICanvasProps) {
+  public UNSAFE_componentWillReceiveProps(newProps: ICanvasProps) {
     if (this.props.save !== newProps.save) {
       this.updateImage();
     }

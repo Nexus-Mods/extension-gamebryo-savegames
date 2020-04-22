@@ -8,7 +8,7 @@ import transferSavegames from '../util/transferSavegames';
 
 import getSavegameAttributes from '../savegameAttributes';
 
-import * as Promise from 'bluebird';
+import Promise from 'bluebird';
 import * as path from 'path';
 import * as React from 'react';
 import { Alert, FormControl, Panel } from 'react-bootstrap';
@@ -87,12 +87,12 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     ];
   }
 
-  public componentWillMount() {
+  public UNSAFE_componentWillMount() {
     this.mTransferAttributes = getSavegameAttributes(this.context.api, false);
     this.mCurrentProfileAttributes = getSavegameAttributes(this.context.api, true);
   }
 
-  public componentWillReceiveProps(newProps: Props) {
+  public UNSAFE_componentWillReceiveProps(newProps: Props) {
     if (this.props.showTransfer !== newProps.showTransfer) {
       this.nextState.importProfileId = undefined;
     }
@@ -146,12 +146,14 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         <Panel>
           <PanelX.Body>
             <FlexLayout type='column'>
-              {savesTruncated && !showTransfer ? (<FlexLayout.Fixed>
-                <Alert>
-                  {t('For performance reasons only the {{count}} most recent '
-                    + 'save games were loaded.', { replace: { count: MAX_SAVEGAMES } })}
-                </Alert>
-              </FlexLayout.Fixed>) : null}
+              {savesTruncated && !showTransfer ? (
+                <FlexLayout.Fixed>
+                  <Alert>
+                    {t('For performance reasons only the {{count}} most recent '
+                      + 'save games were loaded.', { replace: { count: MAX_SAVEGAMES } })}
+                  </Alert>
+                </FlexLayout.Fixed>
+              ) : null}
               <FlexLayout.Flex>
                 <Table
                   tableId='savegames'
