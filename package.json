@@ -42,7 +42,7 @@
     "rm-local-modules": "^0.0.2",
     "ts-loader": "^6.0.4",
     "turbowalk": "Nexus-Mods/node-turbowalk",
-    "vortex-api": "Nexus-Mods/Vortex-api#electron7",
+    "vortex-api": "Nexus-Mods/vortex-api",
     "vortex-parse-ini": "Nexus-Mods/vortex-parse-ini",
     "webpack": "^4.35.3",
     "webpack-cli": "^3.3.6"

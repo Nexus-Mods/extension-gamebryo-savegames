@@ -217,7 +217,7 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
         const savesPath = path.join(mygamesPath(prof.gameId), savePath);
         update.schedule(undefined, prof.id, savesPath);
       }
-      return Promise.resolve();
+      return Promise.resolve(undefined);
     });
 
   context.api.events.on('profile-did-change', (profileId: string) =>
