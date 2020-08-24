@@ -123,6 +123,7 @@ export function loadSaveGame(filePath: string, fileSize: number,
             } : undefined,
             loadedTime: Date.now(),
             creationtime: timestampFormat(sg.creationTime),
+            playTime: sg.playTime,
           },
         };
 
