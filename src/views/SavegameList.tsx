@@ -96,6 +96,12 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     if (this.props.showTransfer !== newProps.showTransfer) {
       this.nextState.importProfileId = undefined;
     }
+
+    const { importProfileId } = this.nextState;
+    if ((importProfileId !== undefined) && (newProps.profiles[importProfileId] === undefined)) {
+      // Profile has been removed ?
+      this.nextState.importProfileId = undefined;
+    }
   }
 
   public render(): JSX.Element {
@@ -388,6 +394,19 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           // Use the profileId to resolve the correct sourcePath
           //  for the selected savegames.
 
+          if ((importProfileId !== '__global') && (importProfileId !== undefined)) {
+            // User is attempting to delete a savegame from a specific profile;
+            //  make sure the profile actually exists. This is more of a sanity
+            //  check.
+            //  https://github.com/Nexus-Mods/Vortex/issues/7291
+            const importProfile = profiles[importProfileId];
+            if (importProfile === undefined) {
+              onShowError('Failed to delete savegame',
+                'The profile attached to the savegame you\'re trying to remove no longer exists. '
+              + 'Please delete the file manually.', undefined, false);
+              return Promise.resolve();
+            }
+          }
           const sourceSavePath = path.resolve(mygamesPath(currentProfile.gameId),
             importProfileId !== '__global'
             ? profileSavePath(profiles[importProfileId || currentProfile.id])
