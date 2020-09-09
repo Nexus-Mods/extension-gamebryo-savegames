@@ -1703,8 +1703,8 @@ fsevents@~2.1.2:
   integrity sha512-Auw9a4AxqWpa9GUfj370BMPzzyncfBABW8Mab7BGWBYDj4Isgq+cDKtx0i6u9jcX9pQDnswsaaOTgTmA5pEjuQ==
 
 gamebryo-savegame@Nexus-Mods/node-gamebryo-savegames:
-  version "1.3.2"
-  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/d078dfe24f03c8013b51c53e10e5a03016326e26"
+  version "1.3.3"
+  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/890564eb23ac3195c1bc01cbd6d57a8cf1139f8d"
   dependencies:
     autogypi "^0.2.2"
     copyfiles "^2.1.0"
@@ -3965,9 +3965,9 @@ upath@^1.1.1:
   integrity sha512-aZwGpamFO61g3OlfT7OQCHqhGnW43ieH9WZeP7QxN/G/jS4jfqUkZxoryvJgVPEcrl5NL/ggHsSmLMHuH64Lhg==
 
 uri-js@^4.2.2:
-  version "4.2.2"
-  resolved "https://registry.yarnpkg.com/uri-js/-/uri-js-4.2.2.tgz#94c540e1ff772956e2299507c010aea6c8838eb0"
-  integrity sha512-KY9Frmirql91X2Qgjry0Wd4Y+YTdrdZheS8TFwvkbLWf/G5KNJDCh6pKL5OZctEW4+0Baa5idK2ZQuELRwPznQ==
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/uri-js/-/uri-js-4.4.0.tgz#aa714261de793e8a82347a7bcc9ce74e86f28602"
+  integrity sha512-B0yRTzYdUCCn9n+F4+Gh4yIDtMQcaJsmYBDsTSG8g/OejKBodLQ2IHfN3bM7jUsRXndopT7OIXWdYqc1fjmV6g==
   dependencies:
     punycode "^2.1.0"
 
