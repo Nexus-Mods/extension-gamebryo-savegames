@@ -478,7 +478,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
     const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);
 
-    if (importProfileId === currentProfile.id) {
+    if ((importProfileId === currentProfile.id) || (importProfileId === undefined)) {
       return;
     }
 
@@ -502,6 +502,16 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         }
 
         const { gameId } = currentProfile;
+
+        if ((importProfileId !== '__global') && (profiles[importProfileId] === undefined)) {
+          return onShowDialog('error', 'Profile doesn\'t exist', {
+            text: 'The profile you\'re trying to import from doesn\'t exist, did you recently delete it?',
+            message: importProfileId,
+          }, [
+            { label: 'Continue' },
+          ])
+          .then(() => Promise.reject(new util.ProcessCanceled('invalid profile')));
+        }
 
         const sourceSavePath = path.resolve(mygamesPath(gameId),
           importProfileId !== '__global'
@@ -545,6 +555,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
             failedCopies.join('\n'), { allowReport: allowErrorReport });
         }
       })
+      .catch(util.ProcessCanceled, () => null)
       .catch(err => {
         this.context.api.showErrorNotification('Failed to import savegames', err);
       });
