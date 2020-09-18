@@ -97,9 +97,11 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       this.nextState.importProfileId = undefined;
     }
 
-    const { importProfileId } = this.nextState;
-    if ((importProfileId !== undefined) && (newProps.profiles[importProfileId] === undefined)) {
-      // Profile has been removed ?
+    const { importProfileId } = this.state;
+    if ((importProfileId !== undefined)
+        && (importProfileId !== '__global')
+        && (newProps.profiles[importProfileId] === undefined)) {
+      this.nextState.importSaves = {};
       this.nextState.importProfileId = undefined;
     }
   }
