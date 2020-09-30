@@ -23,6 +23,10 @@ import {
 
 const placeholder: string = '------';
 
+interface IBaseProps {
+  onRefresh: () => void;
+}
+
 interface IConnectedProps {
   currentProfile: types.IProfile;
   profiles: { [id: string]: types.IProfile };
@@ -54,7 +58,7 @@ interface IComponentState {
   importSaves: { [saveId: string]: ISavegame };
 }
 
-type Props = IConnectedProps & IActionProps;
+type Props = IBaseProps & IConnectedProps & IActionProps;
 
 /**
  * displays the list of savegames installed for the current game.
@@ -272,6 +276,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     this.nextState.importProfileId = currentProfile.id;
     this.nextState.importSaves = undefined;
     this.props.onHideTransfer();
+    this.props.onRefresh();
   }
 
   private selectProfile = (evt) => {

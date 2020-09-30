@@ -254,6 +254,12 @@ function init(context: IExtensionContextExt): boolean {
     hotkey: 'A',
     group: 'per-game',
     visible: () => gameSupported(selectors.activeGameId(context.api.store.getState())),
+    props: () => ({
+      onRefresh: () => {
+        const profile = selectors.activeProfile(context.api.store.getState());
+        update.schedule(undefined, profile.id, getSavesPath(profile));
+      },
+    }),
   });
 
   const update = new util.Debouncer(genUpdateSavegameHandler(context.api), 1000);
