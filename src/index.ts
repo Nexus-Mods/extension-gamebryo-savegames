@@ -118,8 +118,11 @@ function getSavesPath(profile: types.IProfile) {
   return path.join(mygamesPath(profile.gameId), savePath);
 }
 
-function openSavegamesDirectory(api: types.IExtensionApi, profileId: string) {
+function openSavegamesDirectory(api: types.IExtensionApi, profileId?: string) {
   const state: types.IState = api.store.getState();
+  if (profileId === undefined) {
+    profileId = selectors.activeProfile(state).id;
+  }
   const profile = state.persistent.profiles[profileId];
   const hasLocalSaves = util.getSafe(profile, ['features', 'local_saves'], false);
   const profileSavesPath = hasLocalSaves
@@ -277,6 +280,11 @@ function init(context: IExtensionContextExt): boolean {
     const state: types.IState = context.api.store.getState();
     const profile = state.persistent.profiles[instanceIds[0]];
     return gameSupported(profile.gameId);
+  });
+
+  context.registerAction('savegames-icons', 150, 'open-ext', {},
+                         'Open Save Games', () => {
+    openSavegamesDirectory(context.api);
   });
 
   context.once(() => once(context, update));
