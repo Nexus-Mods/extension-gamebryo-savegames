@@ -11,6 +11,32 @@ import { TableDateTimeFilter, TableNumericFilter, TableTextFilter, types, util }
 let language: string;
 let collator: Intl.Collator;
 
+type SavegameType = 'auto' | 'quick' | 'exit' | 'manual';
+
+function saveType(savegame: ISavegame): SavegameType {
+  const fileNameL = (savegame.attributes['filename'] ?? '').toLowerCase();
+  if (fileNameL.startsWith('autosave')) {
+    return 'auto';
+  } else if (fileNameL.startsWith('quicksave')) {
+    return 'quick';
+  } else if (fileNameL.startsWith('exitsave')) {
+    return 'exit';
+  } else {
+    return 'manual';
+  }
+}
+
+const typeToString = (() => {
+  const toString = {
+    auto: (t: types.TFunction) => t('Autosave'),
+    quick: (t: types.TFunction) => t('Quicksave'),
+    exit: (t: types.TFunction) => t('Exitsave'),
+  };
+
+  return (t: types.TFunction, type: SavegameType): string =>
+    toString[type]?.(t) ?? t('Manual save');
+})();
+
 function getSavegameAttributes(api: types.IExtensionApi,
                                addScreenshotAttrib: boolean): types.ITableAttribute[] {
   const loading: Set<string> = new Set();
@@ -180,6 +206,19 @@ function getSavegameAttributes(api: types.IExtensionApi,
       isToggleable: true,
       isSortable: true,
       filter: new TableDateTimeFilter(),
+      edit: {},
+    },
+    {
+      id: 'savetype',
+      name: 'Savegame Type',
+      description: 'Whether this save is a autosave/quicksave or manual one',
+      calc: (savegame: ISavegame, t: types.TFunction) => typeToString(t, saveType(savegame)),
+      placement: 'both',
+      isToggleable: true,
+      isSortable: true,
+      isDefaultSort: false,
+      isDefaultVisible: false,
+      isGroupable: true,
       edit: {},
     },
     {
