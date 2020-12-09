@@ -7,7 +7,8 @@
   "scripts": {
     "webpack": "node ./node_modules/webpack/bin/webpack --config webpack.config.js --display-error-details --progress --profile --color",
     "clear": "rm-local-modules",
-    "build": "npm run webpack && copyfiles -f ./node_modules/gamebryo-savegame/build/Release/nbind.node ./dist/savegamelib && copyfiles -f ./node_modules/gamebryo-savegame/dist/liblz4.dll ./dist/savegamelib && copyfiles -f src/stylesheets/savegame_management.scss dist && extractInfo",
+    "copyfiles": "copyfiles -f ./node_modules/gamebryo-savegame/build/Release/nbind.node ./dist/savegamelib && copyfiles -f ./node_modules/gamebryo-savegame/dist/liblz4.dll ./dist/savegamelib && copyfiles -f ./node_modules/gamebryo-savegame/dist/zlib.dll ./dist/savegamelib && copyfiles -f src/stylesheets/savegame_management.scss dist",
+    "build": "npm run webpack && npm run copyfiles && extractInfo",
     "installDev": "copyfiles -u 1 dist/**/* ../../out/bundledPlugins/gamebryo-savegame-management",
     "buildDev": "npm run build && npm run installDev"
   },
