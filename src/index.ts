@@ -16,6 +16,7 @@ import * as path from 'path';
 import * as Redux from 'redux';
 import { actions, fs, log, selectors, types, util } from 'vortex-api';
 import {IniFile} from 'vortex-parse-ini';
+import { CORRUPTED_NAME } from './constants';
 
 function applySaveSettings(api: types.IExtensionApi,
                            profile: types.IProfile,
@@ -93,12 +94,21 @@ function genUpdateSavegameHandler(api: types.IExtensionApi) {
     return updateSaves(api.store, savesPath)
       .then((failedReadsInner: string[]) => {
         if (failedReadsInner.length > 0) {
-          api.showErrorNotification('Some saves couldn\'t be read',
-            failedReadsInner.join('\n'), {
-              allowReport: false,
-              id: 'saves-not-read',
-              isBBCode: true,
-            });
+          api.sendNotification({
+            id: 'saves-not-read',
+            type: 'error',
+            message: 'Some saves couldn\'t be read',
+            actions: [
+              {
+                title: 'Show',
+                action: () => {
+                  api.events.emit('show-main-page', 'gamebryo-savegames');
+                  api.store.dispatch(
+                    actions.setAttributeFilter('savegames', 'name', CORRUPTED_NAME));
+                },
+              },
+            ],
+          });
         }
       })
       .catch(err => {
@@ -254,6 +264,7 @@ function init(context: IExtensionContextExt): boolean {
   });
 
   context.registerMainPage('savegame', 'Save Games', SavegameList, {
+    id: 'gamebryo-savegames',
     hotkey: 'A',
     group: 'per-game',
     visible: () => gameSupported(selectors.activeGameId(context.api.store.getState())),

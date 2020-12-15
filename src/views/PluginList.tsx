@@ -41,9 +41,11 @@ class PluginList extends React.Component<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const { plugins } = this.props;
+
+    const pluginsSet = new Set(plugins);
     return (
       <ListGroup>
-        {plugins.map(this.renderPlugin)}
+        {Array.from(pluginsSet).map(this.renderPlugin)}
       </ListGroup>
     );
   }

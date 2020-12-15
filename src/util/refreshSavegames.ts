@@ -1,5 +1,7 @@
 import { ISavegame } from '../types/ISavegame';
 
+import { CORRUPTED_NAME } from '../constants';
+
 import Promise from 'bluebird';
 import savegameLibInit from 'gamebryo-savegame';
 import * as path from 'path';
@@ -96,10 +98,26 @@ export function loadSaveGame(filePath: string, fileSize: number,
   return new Promise<void>((resolve, reject) => {
     try {
       savegameLib.create(filePath, !full, (err, sg) => {
+        const id = path.basename(filePath);
         if (err !== null) {
+          onAddSavegame({
+            id,
+            filePath,
+            fileSize,
+            attributes: {
+              id: 0,
+              name: CORRUPTED_NAME,
+              location: 'N/A',
+              playTime: 'N/A',
+              level: 0,
+              filename: id,
+              plugins: [],
+              loadedTime: Date.now(),
+              corrupted: true,
+            },
+          });
           return reject(err);
         }
-        const id = path.basename(filePath);
         if (full) {
           screenshotCache[id] = {
             lastAccess: Date.now(),
@@ -114,7 +132,7 @@ export function loadSaveGame(filePath: string, fileSize: number,
             id: sg.saveNumber,
             name: sg.characterName,
             level: sg.characterLevel,
-            filename: path.basename(filePath),
+            filename: id,
             location: sg.location,
             plugins: sg.plugins,
             screenshot: full ? {

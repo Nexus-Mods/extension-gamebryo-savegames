@@ -1691,8 +1691,8 @@ fsevents@~2.1.2:
   integrity sha512-Auw9a4AxqWpa9GUfj370BMPzzyncfBABW8Mab7BGWBYDj4Isgq+cDKtx0i6u9jcX9pQDnswsaaOTgTmA5pEjuQ==
 
 gamebryo-savegame@Nexus-Mods/node-gamebryo-savegames:
-  version "1.4.0"
-  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/bce755b335e8c16edcde4a7e3511b363b06e62b0"
+  version "1.4.1"
+  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/f758b0c97ceaa043d8251c3d229a7f3794b126a3"
   dependencies:
     autogypi "^0.2.2"
     copyfiles "^2.1.0"

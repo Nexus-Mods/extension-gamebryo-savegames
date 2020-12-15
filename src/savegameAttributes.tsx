@@ -50,7 +50,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
       // we use it as a trigger to get more detailed info from the file
       if ((savegame.attributes.screenshot === undefined)
           || (getScreenshot(savegame.id) === undefined)) {
-        if (!loading.has(savegame.id)) {
+        if (!loading.has(savegame.id) && (savegame.attributes['corrupted'] !== true)) {
           loading.add(savegame.id);
           loadSaveGame(savegame.filePath, savegame.fileSize, (save: ISavegame) => {
             api.store.dispatch(updateSavegame(save.id, save));
