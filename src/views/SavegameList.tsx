@@ -79,12 +79,12 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
     this.savegameActions = [
       {
         icon: 'delete',
-        title: props.t('Delete'),
+        title: 'Delete',
         action: this.remove,
       },
       {
         icon: 'recover',
-        title: props.t('Restore Save Game Plugins'),
+        title: 'Restore Save Game Plugins',
         action: this.restore,
         multiRowAction: false,
       },
