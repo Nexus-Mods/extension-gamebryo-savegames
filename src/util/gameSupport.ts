@@ -1,5 +1,7 @@
 import { app as appIn, remote } from 'electron';
 import * as path from 'path';
+import * as Redux from 'redux';
+import { types } from 'vortex-api';
 
 const app = appIn || remote.app;
 
@@ -85,7 +87,28 @@ const gameSupport: { [key: string]: IGameSupport } = {
       return [].concat([input], scriptExtenderFiles(input, 'obse'));
     },
   },
+  enderalspecialedition: {
+    mygamesPath: 'Enderal Special Edition',
+    iniName: 'Enderal.ini',
+    prefIniName: 'EnderalPrefs.ini',
+    saveFiles: (input: string): string[] =>
+      [].concat([input], scriptExtenderFiles(input, 'skse')),
+  },
 };
+
+export function initGameSupport(store: Redux.Store<types.IState>) {
+  const state: types.IState = store.getState();
+
+  const {discovered} = state.settings.gameMode;
+
+  if (discovered['enderalspecialedition']?.path !== undefined) {
+    if (discovered['enderalspecialedition']?.path.toLowerCase().includes('skyrim')) {
+      gameSupport['enderalspecialedition'].mygamesPath = 'Skyrim Special Edition';
+      gameSupport['enderalspecialedition'].iniName = 'Skyrim.ini';
+      gameSupport['enderalspecialedition'].prefIniName = 'SkyrimPrefs.ini';
+    }
+  }
+}
 
 export function gameSupported(gameMode: string): boolean {
   return gameSupport[gameMode] !== undefined;

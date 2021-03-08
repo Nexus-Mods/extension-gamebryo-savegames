@@ -3,7 +3,7 @@ import { clearSavegames, setSavegamePath,
 import { sessionReducer } from './reducers/session';
 import { settingsReducer } from './reducers/settings';
 import { ISavegame } from './types/ISavegame';
-import {gameSupported, iniPath, mygamesPath} from './util/gameSupport';
+import {gameSupported, iniPath, mygamesPath, initGameSupport} from './util/gameSupport';
 import { profileSavePath } from './util/profileSavePath';
 import { refreshSavegames } from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';
@@ -217,6 +217,11 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
     (oldProfiles: { [profileId: string]: types.IProfile },
      newProfiles: { [profileId: string]: types.IProfile }) => {
        onProfilesModified(store, update, oldProfiles, newProfiles);
+    });
+
+  context.api.onStateChange(
+    ['settings', 'gameMode', 'discovered'], (previous, current) => {
+      initGameSupport(store);
     });
 
   context.api.onAsync('apply-settings',
