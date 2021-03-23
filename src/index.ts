@@ -259,6 +259,9 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
 }
 
 function init(context: IExtensionContextExt): boolean {
+  context.registerReducer(['session', 'saves'], sessionReducer);
+  context.registerReducer(['settings', 'saves'], settingsReducer);
+
   context.registerAction('savegames-icons', 200, 'transfer', {}, 'Transfer Save Games', () => {
     context.api.store.dispatch(showTransferDialog(true));
   });
@@ -283,8 +286,6 @@ function init(context: IExtensionContextExt): boolean {
 
   const update = new util.Debouncer(genUpdateSavegameHandler(context.api), 1000);
 
-  context.registerReducer(['session', 'saves'], sessionReducer);
-  context.registerReducer(['settings', 'saves'], settingsReducer);
   context.registerProfileFeature(
     'local_saves', 'boolean', 'savegame', 'Save Games', 'This profile has its own save games',
     () => gameSupported(selectors.activeGameId(context.api.store.getState())));
