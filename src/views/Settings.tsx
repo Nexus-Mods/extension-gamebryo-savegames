@@ -1,12 +1,12 @@
 import * as React from 'react';
+import { ControlLabel, FormGroup, HelpBlock } from 'react-bootstrap';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
-import { ComponentEx, Toggle, selectors } from 'vortex-api';
 import { ThunkDispatch } from 'redux-thunk';
+import { ComponentEx, selectors, Toggle } from 'vortex-api';
 import { enableMonitor } from '../actions/settings';
 import { gameSupported } from '../util/gameSupport';
-import { FormGroup, ControlLabel, HelpBlock } from 'react-bootstrap';
 
 export interface IBaseProps {
   onToggled: () => void;
@@ -22,7 +22,6 @@ interface IActionProps {
 }
 
 type IProps = IBaseProps & IConnectedProps & IActionProps;
-
 
 class Settings extends ComponentEx<IProps, {}> {
   public render(): JSX.Element {

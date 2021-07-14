@@ -3,7 +3,7 @@ import { clearSavegames, setSavegamePath,
 import { sessionReducer } from './reducers/session';
 import { settingsReducer } from './reducers/settings';
 import { ISavegame } from './types/ISavegame';
-import {gameSupported, iniPath, mygamesPath, initGameSupport} from './util/gameSupport';
+import {gameSupported, iniPath, initGameSupport, mygamesPath} from './util/gameSupport';
 import { profileSavePath } from './util/profileSavePath';
 import { refreshSavegames } from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';

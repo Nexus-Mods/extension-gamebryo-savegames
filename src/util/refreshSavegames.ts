@@ -3,12 +3,10 @@ import { ISavegame } from '../types/ISavegame';
 import { CORRUPTED_NAME } from '../constants';
 
 import Promise from 'bluebird';
-import savegameLibInit from 'gamebryo-savegame';
+import * as savegameLib from 'gamebryo-savegame';
 import * as path from 'path';
 import turbowalk, { IEntry } from 'turbowalk';
-import { fs } from 'vortex-api';
-
-const savegameLib = savegameLibInit('savegameLib');
+import { fs, log } from 'vortex-api';
 
 // TODO essentially disables cache clearing since we can as many screenshots as the max of
 // savegames we will display.

@@ -23,8 +23,8 @@ const gameSupportXboxPass: { [key: string]: any } = {
   },
   fallout4: {
     mygamesPath: 'Fallout4 MS',
-  }
-}
+  },
+};
 
 const gameSupport: { [key: string]: IGameSupport } = {
   skyrim: {

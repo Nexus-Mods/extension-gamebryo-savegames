@@ -1,3 +1,7 @@
 let webpack = require('vortex-api/bin/webpack').default;
 
-module.exports = webpack('gamebryo-savegame-management', __dirname, 4);
+const res = webpack('gamebryo-savegame-management', __dirname, 4);
+
+res.externals['./GamebryoSave'] = './GamebryoSave';
+
+module.exports = res;
