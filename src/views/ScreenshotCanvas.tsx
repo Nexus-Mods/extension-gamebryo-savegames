@@ -63,15 +63,12 @@ class ScreenshotCanvas extends React.Component<ICanvasProps, {}> {
     const imgData: ImageData = ctx.createImageData(width, height);
     imgData.data.set(buffer);
 
-    try {
-      createImageBitmap(imgData)
-        .then((bitmap) => {
-          ctx.drawImage(bitmap, 0, 0);
-        });
-    } catch (err) {
-      log('warn', 'failed to read savegame screenshot',
+    createImageBitmap(imgData)
+      .then((bitmap) => { ctx.drawImage(bitmap, 0, 0); })
+      .catch(err => {
+        log('warn', 'failed to read savegame screenshot',
           { fileName: save.filePath, error: err.message });
-    }
+      });
   }
 }
 
