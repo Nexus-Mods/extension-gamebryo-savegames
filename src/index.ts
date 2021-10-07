@@ -7,16 +7,17 @@ import {gameSupported, iniPath, initGameSupport, mygamesPath} from './util/gameS
 import { profileSavePath } from './util/profileSavePath';
 import { refreshSavegames } from './util/refreshSavegames';
 import SavegameList from './views/SavegameList';
-import Settings from './views/Settings';
 
+import * as RemoteT from '@electron/remote';
 import Promise from 'bluebird';
-import { remote } from 'electron';
 import * as _ from 'lodash';
 import * as path from 'path';
 import * as Redux from 'redux';
 import { actions, fs, log, selectors, types, util } from 'vortex-api';
 import {IniFile} from 'vortex-parse-ini';
 import { CORRUPTED_NAME } from './constants';
+
+const remote = util.lazyRequire<typeof RemoteT>(() => require('@electron/remote'));
 
 function applySaveSettings(api: types.IExtensionApi,
                            profile: types.IProfile,
@@ -242,9 +243,9 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
     onProfileChange(context.api, profileId, update));
 
   const onFocus = () => { updateSavegames(context.api, update); };
-  remote.getCurrentWindow().on('focus', onFocus);
-  remote.getCurrentWindow().on('close', () => {
-    remote.getCurrentWindow().removeListener('focus', onFocus);
+  window.addEventListener('focus', onFocus);
+  window.addEventListener('close', () => {
+    window.removeEventListener('focus', onFocus);
   });
 
   {
