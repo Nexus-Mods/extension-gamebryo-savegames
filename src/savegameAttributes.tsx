@@ -59,7 +59,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
               loading.delete(savegame.id);
             }).catch(err => {
               loading.delete(savegame.id);
-              if (err.path === undefined) {
+              if ((err.path === undefined) && (typeof err !== 'string')) {
                 err.path = savegame.filePath;
               }
               api.showErrorNotification('Failed to load screenshot', err, {
