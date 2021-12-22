@@ -92,8 +92,10 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   public UNSAFE_componentWillMount() {
-    this.mTransferAttributes = getSavegameAttributes(this.context.api, false);
-    this.mCurrentProfileAttributes = getSavegameAttributes(this.context.api, true);
+    this.mTransferAttributes = getSavegameAttributes(this.context.api, false,
+      () => this.props.showTransfer ? this.state.importSaves : this.props.saves);
+    this.mCurrentProfileAttributes = getSavegameAttributes(this.context.api, true,
+      () => this.props.showTransfer ? this.state.importSaves : this.props.saves);
   }
 
   public UNSAFE_componentWillReceiveProps(newProps: Props) {

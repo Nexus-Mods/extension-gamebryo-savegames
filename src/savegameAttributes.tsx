@@ -38,7 +38,9 @@ const typeToString = (() => {
 })();
 
 function getSavegameAttributes(api: types.IExtensionApi,
-                               addScreenshotAttrib: boolean): types.ITableAttribute[] {
+                               addScreenshotAttrib: boolean,
+                               sgList: () => { [saveId: string]: ISavegame })
+                               : types.ITableAttribute[] {
   const loading: Set<string> = new Set();
   const screenshotAttribute: types.ITableAttribute = {
     id: 'screenshot',
@@ -111,7 +113,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
       isToggleable: true,
       isSortable: true,
       isGroupable: true,
-      filter: new CharacterFilter(),
+      filter: new CharacterFilter(sgList),
       edit: {},
       sortFunc: (lhs: string, rhs: string, locale: string): number => {
         if ((collator === undefined) || (locale !== language)) {
