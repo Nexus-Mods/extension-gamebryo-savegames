@@ -239,6 +239,34 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
       return Promise.resolve(undefined);
     });
 
+  context.api.onAsync('did-remove-profile', (res: undefined, profile: types.IProfile) => {
+    if (gameSupported(profile.gameId) && (profile.features?.['local_saves'] ?? false)) {
+      const savePath = profileSavePath(profile);
+      const savesPath = path.join(mygamesPath(profile.gameId), savePath);
+      context.api.showDialog('question', 'Profile deleted', {
+        text: 'The profile you just deleted had savegames associated with it. '
+            + 'Do you want to remove those savegames now? If you don\'t, they '
+            + 'will still be on disk in {{savesPath}} but they won\'t show up '
+            + 'in the game until you move them.',
+        parameters: {
+          savesPath,
+        },
+        links: [
+          { label: 'Open Directory', action: () => { util.opn(savesPath); } },
+        ],
+      }, [
+        { label: 'Cancel' },
+        { label: 'Remove' },
+      ]).then(result => {
+        if (result.action === 'Remove') {
+          return fs.removeAsync(savesPath);
+        }
+      });
+    } else {
+      return Promise.resolve();
+    }
+    });
+
   context.api.events.on('profile-did-change', (profileId: string) =>
     onProfileChange(context.api, profileId, update));
 
