@@ -478,6 +478,26 @@ function onTransferSavegames(api: types.IExtensionApi,
     }));
 }
 
+function getInstalledPlugins(api: types.IExtensionApi): Promise<string[]> {
+  const state = api.getState();
+  const gameMode = selectors.activeGameId(state);
+  const game = util.getGame(gameMode);
+  const discovery = selectors.discoveryByGame(state, gameMode);
+
+  if ((game === undefined) || (discovery?.path === undefined)) {
+    return Promise.resolve([]);
+  }
+
+  return fs.readdirAsync(game.getModPaths(discovery.path)[''])
+    .catch(() => Promise.resolve([]))
+    .then((files: string[]) => {
+      return files.filter((fileName: string) => {
+        const ext = path.extname(fileName).toLowerCase();
+        return ['.esp', '.esm', '.esl'].indexOf(ext) !== -1;
+      }).map((fileName) => fileName.toLowerCase());
+    });
+}
+
 function init(context: IExtensionContextExt): boolean {
   context.registerReducer(['session', 'saves'], sessionReducer);
   context.registerReducer(['settings', 'saves'], settingsReducer);
@@ -509,7 +529,7 @@ function init(context: IExtensionContextExt): boolean {
         onRemoveSavegames(context.api, profileId, savegameIds),
       onTransferSavegames: (profileId: string, fileNames: string[], keepSource: boolean) =>
         onTransferSavegames(context.api, profileId, fileNames, keepSource),
-
+      getInstalledPlugins: () => getInstalledPlugins(context.api),
     }),
   });
 

@@ -39,7 +39,8 @@ const typeToString = (() => {
 
 function getSavegameAttributes(api: types.IExtensionApi,
                                addScreenshotAttrib: boolean,
-                               sgList: () => { [saveId: string]: ISavegame })
+                               sgList: () => { [saveId: string]: ISavegame },
+                               getInstalledPlugins: () => Promise<string[]>)
                                : types.ITableAttribute[] {
   const loading: Set<string> = new Set();
   const screenshotAttribute: types.ITableAttribute = {
@@ -242,7 +243,7 @@ function getSavegameAttributes(api: types.IExtensionApi,
       description: 'Savegame plugins',
       icon: 'file-picture-o',
       customRenderer: (savegame: ISavegame) =>
-        <PluginList plugins={savegame.attributes['plugins']} />,
+        <PluginList plugins={savegame.attributes['plugins']} getInstalledPlugins={getInstalledPlugins} />,
       calc: (savegame: ISavegame) => savegame.attributes['plugins'],
       placement: 'detail',
       isToggleable: false,

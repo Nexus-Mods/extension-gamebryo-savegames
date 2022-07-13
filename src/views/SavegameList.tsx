@@ -24,6 +24,7 @@ interface IBaseProps {
   onRemoveSavegames: (profileId: string, savegameIds: string[]) => Promise<void>;
   onTransferSavegames: (profileId: string, fileNames: string[],
                         keepSource: boolean) => Promise<{ errors: string[], allowReport: boolean }>;
+  getInstalledPlugins: () => Promise<string[]>;
 }
 
 interface IConnectedProps {
@@ -86,10 +87,12 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   public UNSAFE_componentWillMount() {
     this.mTransferAttributes = getSavegameAttributes(
       this.context.api, false,
-      () => this.props.showTransfer ? this.state.importSaves : this.props.saves);
+      () => this.props.showTransfer ? this.state.importSaves : this.props.saves,
+      this.props.getInstalledPlugins);
     this.mCurrentProfileAttributes = getSavegameAttributes(
       this.context.api, true,
-      () => this.props.showTransfer ? this.state.importSaves : this.props.saves);
+      () => this.props.showTransfer ? this.state.importSaves : this.props.saves,
+      this.props.getInstalledPlugins);
   }
 
   public UNSAFE_componentWillReceiveProps(newProps: Props) {

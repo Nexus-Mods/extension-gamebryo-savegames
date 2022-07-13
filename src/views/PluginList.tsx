@@ -1,12 +1,12 @@
 import update from 'immutability-helper';
-import * as path from 'path';
 import * as React from 'react';
 import { ListGroup, ListGroupItem } from 'react-bootstrap';
 import { connect } from 'react-redux';
-import { fs, selectors, types, util } from 'vortex-api';
+import { log, selectors, types } from 'vortex-api';
 
 interface IBaseProps {
   plugins: string[];
+  getInstalledPlugins: () => Promise<string[]>;
 }
 
 interface IConnectedProps {
@@ -65,23 +65,15 @@ class PluginList extends React.Component<IProps, IComponentState> {
   }
 
   private refreshInstalled() {
-    const { discoveredGames, gameMode } = this.props;
-    const discovery = discoveredGames[gameMode];
-    const game = util.getGame(gameMode);
-    if ((game === undefined) || (discovery === undefined) || (discovery.path === undefined)) {
-      this.setState(update(this.state, {
-        installedESPs: { $set: new Set<string>() },
-      }));
-      return;
-    }
-    fs.readdirAsync(game.getModPaths(discovery.path)[''])
-      .catch(() => Promise.resolve([]))
-      .then((files: string[]) => {
-        const plugins = files.filter((fileName: string) => {
-          const ext = path.extname(fileName).toLowerCase();
-          return ['.esp', '.esm', '.esl'].indexOf(ext) !== -1;
-        }).map((fileName) => fileName.toLowerCase());
+    const { getInstalledPlugins } = this.props;
 
+    getInstalledPlugins()
+      .catch(err => {
+        log('error', 'failed to get list of installed plugins', {
+          error: err.message,
+        });
+      })
+      .then((plugins: string[]) => {
         this.setState(update(this.state, {
           installedESPs: { $set: new Set<string>(plugins) },
         }));
