@@ -1,12 +1,12 @@
 import { ISavegame } from '../types/ISavegame';
 
-import { CORRUPTED_NAME } from '../constants';
+import { CORRUPTED_NAME, MAX_SAVEGAMES } from '../constants';
 
 import Promise from 'bluebird';
 import * as savegameLib from 'gamebryo-savegame';
 import * as path from 'path';
 import turbowalk, { IEntry } from 'turbowalk';
-import { fs, log } from 'vortex-api';
+import { fs } from 'vortex-api';
 
 // TODO essentially disables cache clearing since we can as many screenshots as the max of
 // savegames we will display.
@@ -14,7 +14,6 @@ import { fs, log } from 'vortex-api';
 // from the cache and then reloaded and I don't have the time to investigate that.
 const MIN_CACHE_SIZE = 200;
 const MAX_CACHE_SIZE = MIN_CACHE_SIZE + 20;
-export const MAX_SAVEGAMES = 200;
 
 const screenshotCache: {
   [id: string]: {

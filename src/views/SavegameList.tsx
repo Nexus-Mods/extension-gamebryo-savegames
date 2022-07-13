@@ -1,15 +1,9 @@
-import { removeSavegame, showTransferDialog } from '../actions/session';
-import { ISavegame } from '../types/ISavegame';
-import { mygamesPath, saveFiles } from '../util/gameSupport';
-import { profileSavePath } from '../util/profileSavePath';
-import { MAX_SAVEGAMES, refreshSavegames } from '../util/refreshSavegames';
-import restoreSavegamePlugins, { MissingPluginsError } from '../util/restoreSavegamePlugins';
-import transferSavegames from '../util/transferSavegames';
+import { showTransferDialog } from '../actions/session';
+import type { ISavegame } from '../types/ISavegame';
 
+import { MAX_SAVEGAMES } from '../constants';
 import getSavegameAttributes from '../savegameAttributes';
 
-import Promise from 'bluebird';
-import * as path from 'path';
 import * as React from 'react';
 import { Alert, FormControl, Panel } from 'react-bootstrap';
 import { withTranslation } from 'react-i18next';
@@ -17,40 +11,38 @@ import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import {
-  actions, ComponentEx, FlexLayout, fs, IconBar, ITableRowAction,
-  log, MainPage, selectors, Spinner, Table, tooltip, types, util,
+  actions, ComponentEx, FlexLayout, IconBar, ITableRowAction,
+  MainPage, selectors, Spinner, Table, tooltip, types, util,
 } from 'vortex-api';
 
 const placeholder: string = '------';
 
 interface IBaseProps {
   onRefresh: () => void;
+  onLoadSaves: (profileId: string) => Promise<ISavegame[]>;
+  onRestorePlugins: (savegame: ISavegame) => Promise<void>;
+  onRemoveSavegames: (profileId: string, savegameIds: string[]) => Promise<void>;
+  onTransferSavegames: (profileId: string, fileNames: string[],
+                        keepSource: boolean) => Promise<{ errors: string[], allowReport: boolean }>;
 }
 
 interface IConnectedProps {
   currentProfile: types.IProfile;
   profiles: { [id: string]: types.IProfile };
   saves: { [saveId: string]: ISavegame };
-  savesPath: string;
   savesTruncated: boolean;
   showTransfer: boolean;
-  gameMode: string;
-  discoveredGames: { [id: string]: types.IDiscoveryResult };
   activity: string[];
 }
 
 interface IActionProps {
-  onRemoveSavegame: (savegameId: string) => void;
   onHideTransfer: () => void;
   onShowDialog: (
     type: types.DialogType,
     title: string,
     content: types.IDialogContent,
     actions: types.DialogActions) => Promise<types.IDialogResult>;
-  onShowActivity: (message: string, id?: string) => void;
   onShowError: (message: string, details: any, id?: string, allowReport?: boolean) => void;
-  onShowSuccess: (message: string, id?: string) => void;
-  onDismissNotification: (id: string) => void;
 }
 
 interface IComponentState {
@@ -92,9 +84,11 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   public UNSAFE_componentWillMount() {
-    this.mTransferAttributes = getSavegameAttributes(this.context.api, false,
+    this.mTransferAttributes = getSavegameAttributes(
+      this.context.api, false,
       () => this.props.showTransfer ? this.state.importSaves : this.props.saves);
-    this.mCurrentProfileAttributes = getSavegameAttributes(this.context.api, true,
+    this.mCurrentProfileAttributes = getSavegameAttributes(
+      this.context.api, true,
       () => this.props.showTransfer ? this.state.importSaves : this.props.saves);
   }
 
@@ -291,26 +285,12 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   private loadSaves(selectedProfileId: string): Promise<void> {
-    const { currentProfile, profiles } = this.props;
-
-    if (selectedProfileId === undefined) {
-      this.nextState.importSaves = undefined;
-      return Promise.resolve();
-    }
-
-    const savesPath = path.resolve(mygamesPath(currentProfile.gameId),
-      selectedProfileId !== '__global'
-      ? profileSavePath(profiles[selectedProfileId])
-      : profileSavePath(currentProfile, true));
-
-    const newSavegames: ISavegame[] = [];
+    const { onLoadSaves } = this.props;
 
     this.nextState.importSaves = undefined;
 
-    return refreshSavegames(savesPath, (save: ISavegame): void => {
-      newSavegames.push(save);
-    }, false)
-      .then(() => {
+    return onLoadSaves(selectedProfileId)
+      .then((newSavegames: ISavegame[]) => {
         const savesDict: { [id: string]: ISavegame } = {};
         newSavegames.forEach(save => savesDict[save.id] = save);
 
@@ -326,67 +306,17 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   private restore = (instanceId: string) => {
-    const { t, onDismissNotification, onShowDialog, onShowActivity,
-            onShowError, onShowSuccess, saves } = this.props;
-    const { discoveredGames, gameMode } = this.props;
+    const { onRestorePlugins, saves } = this.props;
 
     if (saves[instanceId] === undefined) {
       return;
     }
 
-    const game = util.getGame(gameMode);
-    const discovery = util.getSafe(discoveredGames, [gameMode], undefined);
-    if ((game === undefined)
-    || (discovery === undefined)
-    || (discovery.path === undefined)) {
-      // How is this even possible ?
-      onShowError('Failed to restore plugins',
-                  'Your active game is no longer discovered by Vortex; '
-                + 'please manually add your game, or run the discovery '
-                + 'scan on the games page.', undefined, true);
-      return;
-    }
-
-    const modPath = game.getModPaths(discovery.path)[''];
-
-    const notificationId = 'restore-plugins-id';
-    onShowActivity('Restoring plugins', notificationId);
-
-    restoreSavegamePlugins(this.context.api, modPath, saves[instanceId])
-      .then(() => {
-        onShowSuccess('Restoring plugins complete', notificationId);
-      })
-      .catch(MissingPluginsError, (err: MissingPluginsError) => {
-        let restorePlugins = true;
-        onShowDialog('question', t('Restore plugins'), {
-          message: t('Some plugins are missing and can\'t be enabled.\n\n{{missingPlugins}}',
-            {
-              replace: {
-                missingPlugins: err.missingPlugins.join('\n'),
-              },
-            }),
-          options: {
-            translated: true,
-          },
-        }, [{ label: 'Cancel' }, { label: 'Continue' }])
-          .then((result: types.IDialogResult) => {
-            restorePlugins = result.action === 'Continue';
-            if (restorePlugins) {
-              this.context.api.events.emit('set-plugin-list', saves[instanceId].attributes.plugins);
-              onShowSuccess('Restored plugins for savegame', notificationId);
-            } else {
-              onDismissNotification(notificationId);
-            }
-          });
-      })
-      .catch((err: Error) => {
-        onShowError('Failed to restore plugins', err, notificationId);
-      });
+    onRestorePlugins(saves[instanceId]);
   }
 
   private remove = (instanceIds: string[]) => {
-    const { t, currentProfile, onRemoveSavegame, onShowDialog,
-            onShowError, profiles } = this.props;
+    const { t, onRemoveSavegames, onShowDialog } = this.props;
     const { importProfileId } = this.state;
     let doRemoveSavegame = true;
 
@@ -400,52 +330,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       .then((result: types.IDialogResult) => {
         doRemoveSavegame = result.action === 'Delete';
         if (doRemoveSavegame) {
-          // Use the profileId to resolve the correct sourcePath
-          //  for the selected savegames.
-
-          if ((importProfileId !== '__global') && (importProfileId !== undefined)) {
-            // User is attempting to delete a savegame from a specific profile;
-            //  make sure the profile actually exists. This is more of a sanity
-            //  check.
-            //  https://github.com/Nexus-Mods/Vortex/issues/7291
-            const importProfile = profiles[importProfileId];
-            if (importProfile === undefined) {
-              onShowError('Failed to delete savegame',
-                'The profile attached to the savegame you\'re trying to remove no longer exists. '
-              + 'Please delete the file manually.', undefined, false);
-              return Promise.resolve();
-            }
-          }
-          const sourceSavePath = path.resolve(mygamesPath(currentProfile.gameId),
-            importProfileId !== '__global'
-            ? profileSavePath(profiles[importProfileId || currentProfile.id])
-            : profileSavePath(currentProfile, true));
-
-          return Promise.map(instanceIds, id => !!id
-            ? Promise.map(saveFiles(currentProfile.gameId, id), filePath =>
-              fs.removeAsync(path.join(sourceSavePath, filePath))
-                .catch(util.UserCanceled, () => undefined)
-                .catch(err => {
-                  // We're not checking for 'ENOENT' at this point given that
-                  //  fs.removeAsync wrapper will resolve whenever these are
-                  //  encountered.
-                  if (err.code === 'EPERM') {
-                    onShowError('Failed to delete savegame',
-                                'The file is write protected.',
-                                undefined, false);
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(err);
-                })
-                .then(() => {
-                  onRemoveSavegame(id);
-                }))
-            : Promise.reject(new Error('invalid savegame id')))
-            .then(() => this.refreshImportSaves())
-            .catch(err => {
-              onShowError('Failed to delete savegame(s), this is probably a permission problem',
-                          err, undefined, false);
-            });
+          return onRemoveSavegames(importProfileId, instanceIds);
         } else {
           return Promise.resolve();
         }
@@ -454,23 +339,15 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
 
   // Should be called to immediately refresh the importSaves object
   private refreshImportSaves() {
-    const { currentProfile, onShowError, profiles } = this.props;
+    const { onShowError } = this.props;
     const { importSaves, importProfileId } = this.state;
 
     if (importProfileId === undefined) {
       return Promise.resolve();
     }
 
-    const sourceSavePath = path.resolve(mygamesPath(currentProfile.gameId),
-      importProfileId !== '__global'
-      ? profileSavePath(profiles[importProfileId])
-      : profileSavePath(currentProfile, true));
-
-    const saves: ISavegame[] = [];
-    return refreshSavegames(sourceSavePath, (save: ISavegame): void => {
-      saves.push(save);
-    }, false)
-      .then(() => {
+    this.props.onLoadSaves(importProfileId)
+      .then(saves => {
         const savesDict: { [id: string]: ISavegame } = {};
         saves.forEach(save => savesDict[save.id] = save);
         if (importSaves !== savesDict) {
@@ -482,7 +359,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
   }
 
   private importSaves = (instanceIds: string[]) => {
-    const { t, currentProfile, onShowDialog, profiles } = this.props;
+    const { t, currentProfile, onShowDialog, onTransferSavegames } = this.props;
     const { importSaves, importProfileId } = this.state;
 
     const fileNames = instanceIds.map(id => importSaves[id].attributes['filename']);
@@ -491,7 +368,6 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
       return;
     }
 
-    let allowErrorReport: boolean = true;
     let userCancelled: boolean = false;
     onShowDialog('question', t('Import Savegames'), {
       text: t('The following files will be imported'),
@@ -500,9 +376,9 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         translated: true,
       },
     }, [
-        { label: 'Cancel' },
-        { label: 'Move' },
-        { label: 'Copy' },
+      { label: 'Cancel' },
+      { label: 'Move' },
+      { label: 'Copy' },
     ])
       .then((result: types.IDialogResult) => {
         if (result.action === 'Cancel') {
@@ -510,41 +386,14 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
           return;
         }
 
-        const { gameId } = currentProfile;
-
-        if ((importProfileId !== '__global') && (profiles[importProfileId] === undefined)) {
-          return onShowDialog('error', 'Profile doesn\'t exist', {
-            text: 'The profile you\'re trying to import from doesn\'t exist, did you recently delete it?',
-            message: importProfileId,
-          }, [
-            { label: 'Continue' },
-          ])
-          .then(() => Promise.reject(new util.ProcessCanceled('invalid profile')));
+        return onTransferSavegames(importProfileId, fileNames, result.action === 'Copy');
+      })
+      .then((result: { errors: string[], allowReport: boolean }) => {
+        if (result === undefined) {
+          return;
         }
 
-        const sourceSavePath = path.resolve(mygamesPath(gameId),
-          importProfileId !== '__global'
-          ? profileSavePath(profiles[importProfileId])
-          : profileSavePath(currentProfile, true));
-
-        const destSavePath = path.resolve(mygamesPath(gameId),
-                                          profileSavePath(currentProfile));
-
-        const keepSource = result.action === 'Copy';
-        return fs.ensureDirAsync(destSavePath)
-          .then(() => transferSavegames(gameId, fileNames, sourceSavePath,
-                                        destSavePath, keepSource))
-          .catch(err => {
-            allowErrorReport = ['EPERM', 'ENOSPC'].indexOf(err.code) === -1;
-            const logLevel = allowErrorReport ? 'error' : 'warn';
-            log(logLevel, 'Failed to create save game directory - ', err.code);
-
-            return [t('Unable to create save game directory: {{dest}}\\ (Please ensure you have '
-                    + 'enough space and/or full write permissions to the destination folder)',
-            { replace: { dest: destSavePath } })];
-          });
-      })
-      .then((failedCopies: string[]) => {
+        const { errors, allowReport } = result;
         this.refreshImportSaves();
         if (userCancelled) {
           this.context.api.sendNotification({
@@ -552,7 +401,7 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
             message: t('Savegame transfer cancelled'),
             displayMS: 2000,
           });
-        } else if ((failedCopies === undefined) || (failedCopies.length === 0)) {
+        } else if ((errors === undefined) || (errors.length === 0)) {
           this.context.api.sendNotification({
             type: 'success',
             message: t('{{ count }} savegame imported', { count: fileNames.length }),
@@ -561,12 +410,13 @@ class SavegameList extends ComponentEx<Props, IComponentState> {
         } else {
           this.context.api.showErrorNotification(
             t('Not all savegames could be imported'),
-            failedCopies.join('\n'), { allowReport: allowErrorReport });
+            errors.join('\n'), { allowReport });
         }
       })
-      .catch(util.ProcessCanceled, () => null)
       .catch(err => {
-        this.context.api.showErrorNotification('Failed to import savegames', err);
+        if (!(err instanceof util.ProcessCanceled)) {
+          this.context.api.showErrorNotification('Failed to import savegames', err);
+        }
       });
   }
 }
@@ -579,28 +429,19 @@ function mapStateToProps(state: any): IConnectedProps {
     currentProfile,
     profiles: state.persistent.profiles,
     saves: state.session.saves.saves,
-    savesPath: state.session.saves.savegamePath,
     savesTruncated: state.session.saves.savesTruncated,
     showTransfer: state.session.saves.showDialog,
-    discoveredGames: state.settings.gameMode.discovered,
-    gameMode: selectors.activeGameId(state),
     activity: state.session.base.activity['savegames'] || emptyArray,
   };
 }
 
 function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): IActionProps {
   return {
-    onRemoveSavegame: (savegameId: string) => dispatch(removeSavegame(savegameId)),
     onShowDialog: (type, title, content, dialogActions) =>
       dispatch(actions.showDialog(type, title, content, dialogActions)),
     onHideTransfer: () => dispatch(showTransferDialog(false)),
-    onShowActivity: (message: string, id?: string) =>
-      util.showActivity(dispatch, message, id),
     onShowError: (message: string, details: any, id?: string, allowReport?: boolean) =>
       util.showError(dispatch, message, details, { id, allowReport }),
-    onShowSuccess: (message: string, id?: string) =>
-      util.showSuccess(dispatch, message, id),
-    onDismissNotification: (id: string) => dispatch(actions.dismissNotification(id)),
   };
 }
 

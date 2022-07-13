@@ -1,14 +1,15 @@
-import { clearSavegames, setSavegamePath,
-   setSavegames, showTransferDialog } from './actions/session';
+import { clearSavegames, removeSavegame, setSavegamePath,
+         setSavegames, showTransferDialog } from './actions/session';
 import { sessionReducer } from './reducers/session';
 import { settingsReducer } from './reducers/settings';
 import { ISavegame } from './types/ISavegame';
-import {gameSupported, iniPath, initGameSupport, mygamesPath} from './util/gameSupport';
+import {gameSupported, iniPath, initGameSupport, mygamesPath, saveFiles} from './util/gameSupport';
 import { profileSavePath } from './util/profileSavePath';
 import { refreshSavegames } from './util/refreshSavegames';
+import restoreSavegamePlugins, { MissingPluginsError } from './util/restoreSavegamePlugins';
+import transferSavegames from './util/transferSavegames';
 import SavegameList from './views/SavegameList';
 
-import * as RemoteT from '@electron/remote';
 import Promise from 'bluebird';
 import * as _ from 'lodash';
 import * as path from 'path';
@@ -16,8 +17,6 @@ import * as Redux from 'redux';
 import { actions, fs, log, selectors, types, util } from 'vortex-api';
 import {IniFile} from 'vortex-parse-ini';
 import { CORRUPTED_NAME } from './constants';
-
-const remote = util.lazyRequire<typeof RemoteT>(() => require('@electron/remote'));
 
 function applySaveSettings(api: types.IExtensionApi,
                            profile: types.IProfile,
@@ -86,7 +85,7 @@ function updateSaves(store: Redux.Store<any>,
 
 function genUpdateSavegameHandler(api: types.IExtensionApi) {
   return (profileId: string, savesPath: string) => {
-    if (!remote.getCurrentWindow().isFocused()) {
+    if (!util.getApplication().isFocused) {
       return Promise.resolve();
     }
 
@@ -287,6 +286,198 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
   updateSavegames(context.api, update);
 }
 
+function onLoadSaves(api: types.IExtensionApi, profileId: string): Promise<ISavegame[]> {
+  const state = api.getState();
+  const { profiles } = state.persistent;
+  const currentProfile = selectors.activeProfile(state);
+
+  if (profileId === undefined) {
+    return Promise.resolve([]);
+  }
+
+  const gameProfiles = mygamesPath(currentProfile.gameId);
+  const profilePath = profileId !== '__global'
+    ? profileSavePath(profiles[profileId])
+    : profileSavePath(currentProfile, true);
+  const savesPath = path.resolve(gameProfiles, profilePath);
+
+  const savegames: ISavegame[] = [];
+
+  return refreshSavegames(savesPath, (save: ISavegame): void => {
+    savegames.push(save);
+  }, false)
+    .then(() => savegames);
+}
+
+function onRestorePlugins(api: types.IExtensionApi, savegame: ISavegame) {
+  const state = api.getState();
+  const { dispatch } = api.store;
+  const gameMode = selectors.activeGameId(state);
+  const game = util.getGame(gameMode);
+  const t = api.translate;
+  const { discovered } = state.settings.gameMode;
+
+  const discovery = util.getSafe(discovered, [gameMode], undefined);
+
+  if ((game === undefined)
+    || (discovery === undefined)
+    || (discovery.path === undefined)) {
+    // How is this even possible ?
+    util.showError(
+      dispatch, 'Failed to restore plugins',
+      'Your active game is no longer discovered by Vortex; '
+      + 'please manually add your game, or run the discovery '
+      + 'scan on the games page.', { allowReport: true });
+    return;
+  }
+
+  const modPath = game.getModPaths(discovery.path)[''];
+
+  const notificationId = 'restore-plugins-id';
+  util.showActivity(dispatch, 'Restoring plugins', notificationId);
+
+  restoreSavegamePlugins(api, modPath, savegame)
+    .then(() => {
+      util.showSuccess(dispatch, 'Restoring plugins complete', notificationId);
+    })
+    .catch(MissingPluginsError, (err: MissingPluginsError) => {
+      let restorePlugins = true;
+      api.showDialog('question', t('Restore plugins'), {
+        message: t('Some plugins are missing and can\'t be enabled.\n\n{{missingPlugins}}', {
+          replace: {
+            missingPlugins: err.missingPlugins.join('\n'),
+          },
+        }),
+        options: {
+          translated: true,
+        },
+      }, [{ label: 'Cancel' }, { label: 'Continue' }])
+        .then((result: types.IDialogResult) => {
+          restorePlugins = result.action === 'Continue';
+          if (restorePlugins) {
+            api.events.emit('set-plugin-list', savegame.attributes.plugins);
+            util.showSuccess(dispatch, 'Restored plugins for savegame', notificationId);
+          } else {
+            api.dismissNotification(notificationId);
+          }
+        });
+    })
+    .catch((err: Error) => {
+      util.showError(dispatch, 'Failed to restore plugins', err, { id: notificationId });
+    });
+}
+
+function onRemoveSavegames(api: types.IExtensionApi, profileId: string, savegameIds: string[]) {
+  const state = api.getState();
+  const { dispatch } = api.store;
+
+  const { profiles } = state.persistent;
+  const currentProfile = selectors.activeProfile(state);
+
+
+  // Use the profileId to resolve the correct sourcePath
+  //  for the selected savegames.
+  if ((profileId !== '__global') && (profileId !== undefined)) {
+    // User is attempting to delete a savegame from a specific profile;
+    //  make sure the profile actually exists. This is more of a sanity
+    //  check.
+    //  https://github.com/Nexus-Mods/Vortex/issues/7291
+    if (profiles[profileId] === undefined) {
+      util.showError(
+        dispatch, 'Failed to delete savegame',
+        'The profile attached to the savegame you\'re trying to remove no longer exists. '
+        + 'Please delete the file manually.',
+        { allowReport: false });
+      return Promise.resolve();
+    }
+  }
+
+  const gameProfiles = mygamesPath(currentProfile.gameId);
+  const profilePath = profileId !== '__global'
+    ? profileSavePath(profiles[profileId || currentProfile.id])
+    : profileSavePath(currentProfile, true);
+
+  const sourceSavePath = path.join(gameProfiles, profilePath);
+
+  return Promise.map(savegameIds, id => !!id
+    ? Promise.map(saveFiles(currentProfile.gameId, id), filePath =>
+      fs.removeAsync(path.join(sourceSavePath, filePath))
+        .catch(util.UserCanceled, () => undefined)
+        .catch(err => {
+          // We're not checking for 'ENOENT' at this point given that
+          //  fs.removeAsync wrapper will resolve whenever these are
+          //  encountered.
+          if (err.code === 'EPERM') {
+            util.showError(
+              dispatch, 'Failed to delete savegame',
+              'The file is write protected.',
+              { allowReport: false });
+            return Promise.resolve();
+          }
+          return Promise.reject(err);
+        })
+        .then(() => {
+          dispatch(removeSavegame(id));
+        }))
+    : Promise.reject(new Error('invalid savegame id')))
+    .then(() => this.refreshImportSaves())
+    .catch(err => {
+      util.showError(
+        dispatch, 'Failed to delete savegame(s), this is probably a permission problem',
+        err, { allowReport: false });
+    });
+}
+
+function onTransferSavegames(api: types.IExtensionApi,
+                             profileId: string,
+                             fileNames: string[],
+                             keepSource: boolean)
+                             : Promise<{ errors: string[], allowReport: boolean }> {
+  const state = api.getState();
+  const t = api.translate;
+  const currentProfile = selectors.activeProfile(state);
+  const { gameId } = currentProfile;
+  const { profiles } = state.persistent;
+
+  if ((profileId !== '__global') && (profiles[profileId] === undefined)) {
+    return api.showDialog('error', 'Profile doesn\'t exist', {
+      text: 'The profile you\'re trying to import from doesn\'t exist, did you recently delete it?',
+      message: profileId,
+    }, [
+      { label: 'Continue' },
+    ])
+      .then(() => Promise.reject(new util.ProcessCanceled('invalid profile')));
+  }
+
+  const sourceSavePath = path.resolve(
+    mygamesPath(gameId),
+    (profileId !== '__global')
+      ? profileSavePath(profiles[profileId])
+      : profileSavePath(currentProfile, true));
+
+  const destSavePath = path.resolve(mygamesPath(gameId), profileSavePath(currentProfile));
+
+  let allowErrorReport = true;
+
+  return fs.ensureDirAsync(destSavePath)
+    .then(() => transferSavegames(gameId, fileNames, sourceSavePath, destSavePath, keepSource))
+    .catch(err => {
+      allowErrorReport = ['EPERM', 'ENOSPC'].includes(err.code);
+      const logLevel = allowErrorReport ? 'error' : 'warn';
+      log(logLevel, 'Failed to create save game directory - ', err.code);
+
+      return [
+        t('Unable to create save game directory: {{dest}}\\ (Please ensure you have '
+          + 'enough space and/or full write permissions to the destination folder)', {
+          replace: { dest: destSavePath } })
+      ];
+    })
+    .then(errors => ({
+      errors,
+      allowReport: allowErrorReport,
+    }));
+}
+
 function init(context: IExtensionContextExt): boolean {
   context.registerReducer(['session', 'saves'], sessionReducer);
   context.registerReducer(['settings', 'saves'], settingsReducer);
@@ -310,6 +501,15 @@ function init(context: IExtensionContextExt): boolean {
         const profile = selectors.activeProfile(context.api.store.getState());
         update.schedule(undefined, profile.id, getSavesPath(profile));
       },
+      onLoadSaves: (profileId: string) =>
+        onLoadSaves(context.api, profileId),
+      onRestorePlugins: (savegame: ISavegame) =>
+        onRestorePlugins(context.api, savegame),
+      onRemoveSavegames: (profileId: string, savegameIds: string[]) =>
+        onRemoveSavegames(context.api, profileId, savegameIds),
+      onTransferSavegames: (profileId: string, fileNames: string[], keepSource: boolean) =>
+        onTransferSavegames(context.api, profileId, fileNames, keepSource),
+
     }),
   });
 
