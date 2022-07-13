@@ -4,6 +4,7 @@ import type { ISavegame } from '../types/ISavegame';
 import { MAX_SAVEGAMES } from '../constants';
 import getSavegameAttributes from '../savegameAttributes';
 
+import Bluebird from 'bluebird';
 import * as React from 'react';
 import { Alert, FormControl, Panel } from 'react-bootstrap';
 import { withTranslation } from 'react-i18next';
@@ -42,7 +43,7 @@ interface IActionProps {
     type: types.DialogType,
     title: string,
     content: types.IDialogContent,
-    actions: types.DialogActions) => Promise<types.IDialogResult>;
+    actions: types.DialogActions) => Bluebird<types.IDialogResult>;
   onShowError: (message: string, details: any, id?: string, allowReport?: boolean) => void;
 }
 
