@@ -511,25 +511,32 @@ function init(context: IExtensionContextExt): boolean {
     update.runNow(undefined, profile.id, getSavesPath(profile));
   });
 
+  const onRefresh = () => {
+    const profile = selectors.activeProfile(context.api.store.getState());
+    update.schedule(undefined, profile.id, getSavesPath(profile));
+  };
+  const onLoadSavesProp = (profileId: string) =>
+    onLoadSaves(context.api, profileId);
+  const onRestorePluginsProp = (savegame: ISavegame) =>
+    onRestorePlugins(context.api, savegame);
+  const onRemoveSavegamesProp = (profileId: string, savegameIds: string[]) =>
+    onRemoveSavegames(context.api, profileId, savegameIds);
+  const onTransferSavegamesProp = (profileId: string, fileNames: string[], keepSource: boolean) =>
+    onTransferSavegames(context.api, profileId, fileNames, keepSource);
+  const getInstalledPluginsProp = () => getInstalledPlugins(context.api);
+
   context.registerMainPage('savegame', 'Save Games', SavegameList, {
     id: 'gamebryo-savegames',
     hotkey: 'A',
     group: 'per-game',
     visible: () => gameSupported(selectors.activeGameId(context.api.store.getState())),
     props: () => ({
-      onRefresh: () => {
-        const profile = selectors.activeProfile(context.api.store.getState());
-        update.schedule(undefined, profile.id, getSavesPath(profile));
-      },
-      onLoadSaves: (profileId: string) =>
-        onLoadSaves(context.api, profileId),
-      onRestorePlugins: (savegame: ISavegame) =>
-        onRestorePlugins(context.api, savegame),
-      onRemoveSavegames: (profileId: string, savegameIds: string[]) =>
-        onRemoveSavegames(context.api, profileId, savegameIds),
-      onTransferSavegames: (profileId: string, fileNames: string[], keepSource: boolean) =>
-        onTransferSavegames(context.api, profileId, fileNames, keepSource),
-      getInstalledPlugins: () => getInstalledPlugins(context.api),
+      onRefresh,
+      onLoadSaves: onLoadSavesProp,
+      onRestorePlugins: onRestorePluginsProp,
+      onRemoveSavegames: onRemoveSavegamesProp,
+      onTransferSavegames: onTransferSavegamesProp,
+      getInstalledPlugins: getInstalledPluginsProp,
     }),
   });
 
