@@ -420,7 +420,7 @@ function onRemoveSavegames(api: types.IExtensionApi, profileId: string, savegame
           dispatch(removeSavegame(id));
         }))
     : Promise.reject(new Error('invalid savegame id')))
-    .then(() => this.refreshImportSaves())
+    .then(() => updateSaves(api.store, sourceSavePath))
     .catch(err => {
       util.showError(
         dispatch, 'Failed to delete savegame(s), this is probably a permission problem',
