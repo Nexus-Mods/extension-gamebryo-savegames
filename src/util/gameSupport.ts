@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as Redux from 'redux';
-import { types, util } from 'vortex-api';
+import { selectors, types, util } from 'vortex-api';
 
 interface IGameSupport {
   mygamesPath: string;
@@ -20,6 +20,12 @@ const gameSupportXboxPass: { [key: string]: any } = {
   },
   fallout4: {
     mygamesPath: 'Fallout4 MS',
+  },
+};
+
+const gameSupportGOG: { [key: string]: any } = {
+  skyrimse: {
+    mygamesPath: 'Skyrim Special Edition GOG',
   },
 };
 
@@ -108,7 +114,11 @@ function isXboxPath(discoveryPath: string) {
   return ['modifiablewindowsapps', '3275kfvn8vcwc'].find(hasPathElement) !== undefined;
 }
 
+let gameStoreForGame: (gameId: string) => string = () => undefined;
+
 export function initGameSupport(store: Redux.Store<types.IState>) {
+  gameStoreForGame = (gameId: string) => selectors.discoveryByGame(store.getState(), gameId)['store'];
+
   const state: types.IState = store.getState();
 
   const {discovered} = state.settings.gameMode;
@@ -135,8 +145,11 @@ export function gameSupported(gameMode: string): boolean {
 }
 
 export function mygamesPath(gameMode: string): string {
-  return path.join(util.getVortexPath('documents'), 'My Games',
-                   gameSupport[gameMode].mygamesPath);
+  const relPath = (gameStoreForGame(gameMode) === 'gog')
+    ? gameSupportGOG[gameMode].mygamesPath
+    : gameSupport[gameMode].mygamesPath;
+
+  return path.join(util.getVortexPath('documents'), 'My Games', relPath);
 }
 
 export function iniPath(gameMode: string): string {

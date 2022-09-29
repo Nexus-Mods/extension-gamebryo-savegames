@@ -210,6 +210,8 @@ function onProfilesModified(store: Redux.Store<any>,
 function once(context: types.IExtensionContext, update: util.Debouncer) {
   const store: Redux.Store<any> = context.api.store;
 
+  initGameSupport(store);
+
   context.api.setStylesheet('savegame-management',
     path.join(__dirname, 'savegame_management.scss'));
 
@@ -222,6 +224,7 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
   context.api.onStateChange(
     ['settings', 'gameMode', 'discovered'], (previous, current) => {
       initGameSupport(store);
+      updateSavegames(context.api, update);
     });
 
   context.api.onAsync('apply-settings',
@@ -282,8 +285,6 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
       store.dispatch(setSavegamePath(savePath));
     }
   }
-
-  updateSavegames(context.api, update);
 }
 
 function onLoadSaves(api: types.IExtensionApi, profileId: string): Promise<ISavegame[]> {
