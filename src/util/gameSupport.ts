@@ -145,7 +145,7 @@ export function gameSupported(gameMode: string): boolean {
 }
 
 export function mygamesPath(gameMode: string): string {
-  const relPath = (gameStoreForGame(gameMode) === 'gog')
+  const relPath = (gameStoreForGame(gameMode) === 'gog') && !!gameSupportGOG[gameMode]
     ? gameSupportGOG[gameMode].mygamesPath
     : gameSupport[gameMode].mygamesPath;
 
