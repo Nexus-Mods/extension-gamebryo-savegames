@@ -29,6 +29,12 @@ const gameSupportGOG: { [key: string]: any } = {
   },
 };
 
+const gameSupportEpic: { [key: string]: any } = {
+  skyrimse: {
+    mygamesPath: 'Skyrim Special Edition EPIC',
+  },
+};
+
 const gameSupport: { [key: string]: IGameSupport } = {
   skyrim: {
     mygamesPath: 'skyrim',
@@ -145,10 +151,20 @@ export function gameSupported(gameMode: string): boolean {
 }
 
 export function mygamesPath(gameMode: string): string {
-  const relPath = (gameStoreForGame(gameMode) === 'gog') && !!gameSupportGOG[gameMode]
-    ? gameSupportGOG[gameMode].mygamesPath
-    : gameSupport[gameMode].mygamesPath;
+  const gameStore = gameStoreForGame(gameMode);
 
+  let relPath;
+
+  switch(gameStore) {
+    case 'gog': relPath = gameSupportGOG[gameMode]?.appDataPath || gameSupport[gameMode].appDataPath;
+    break;
+    case 'epic': relPath = gameSupportEpic[gameMode]?.appDataPath || gameSupport[gameMode].appDataPath;
+    break;
+    case 'xbox': relPath = gameSupportXboxPass[gameMode]?.appDataPath || gameSupport[gameMode].appDataPath;
+    break;
+    default: relPath = gameSupport[gameMode].appDataPath;
+  }
+  
   return path.join(util.getVortexPath('documents'), 'My Games', relPath);
 }
 
