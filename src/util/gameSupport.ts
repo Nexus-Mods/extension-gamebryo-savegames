@@ -14,22 +14,7 @@ function scriptExtenderFiles(input: string, seext: string): string[] {
   return [path.basename(input, ext) + '.' + seext];
 }
 
-const gameSupportXboxPass: { [key: string]: any } = {
-  skyrimse: {
-    mygamesPath: 'Skyrim Special Edition MS',
-  },
-  fallout4: {
-    mygamesPath: 'Fallout4 MS',
-  },
-};
-
-const gameSupportGOG: { [key: string]: any } = {
-  skyrimse: {
-    mygamesPath: 'Skyrim Special Edition GOG',
-  },
-};
-
-const gameSupport: { [key: string]: IGameSupport } = {
+const gameSupport = util.makeOverlayableDictionary<string, IGameSupport>({
   skyrim: {
     mygamesPath: 'skyrim',
     iniName: 'Skyrim.ini',
@@ -106,38 +91,44 @@ const gameSupport: { [key: string]: IGameSupport } = {
     saveFiles: (input: string): string[] =>
       [].concat([input], scriptExtenderFiles(input, 'skse')),
   },
-};
+}, {
+  xbox: {
+    skyrimse: {
+      mygamesPath: 'Skyrim Special Edition MS',
+    },
+    fallout4: {
+      mygamesPath: 'Fallout4 MS',
+    },
+  },
 
-function isXboxPath(discoveryPath: string) {
-  const hasPathElement = (element) =>
-    discoveryPath.toLowerCase().includes(element);
-  return ['modifiablewindowsapps', '3275kfvn8vcwc'].find(hasPathElement) !== undefined;
-}
+  gog: {
+    skyrimse: {
+      mygamesPath: 'Skyrim Special Edition GOG',
+    },
+  },
+  enderalseOverlay: {
+    enderalspecialedition: {
+      mygamesPath: 'Skyrim Special Edition',
+      iniName: 'Skyrim.ini',
+      prefIniName: 'SkyrimPrefs.ini',
+    },
+  },
+}, (gameId: string) => {
+  const discovery = discoveryForGame(gameId);
+  if ((discovery.path !== undefined)
+      && (gameId === 'enderalspecialedition')
+      && discovery.path.includes('skyrim')) {
+    return 'enderalseOverlay';
+  }
+  else {
+    return discovery.store;
+  }
+});
 
-let gameStoreForGame: (gameId: string) => string = () => undefined;
+let discoveryForGame: (gameId: string) => types.IDiscoveryResult = () => undefined;
 
 export function initGameSupport(store: Redux.Store<types.IState>) {
-  gameStoreForGame = (gameId: string) => selectors.discoveryByGame(store.getState(), gameId)['store'];
-
-  const state: types.IState = store.getState();
-
-  const {discovered} = state.settings.gameMode;
-
-  Object.keys(gameSupportXboxPass).forEach(gameMode => {
-    if (discovered[gameMode]?.path !== undefined) {
-      if (isXboxPath(discovered[gameMode].path)) {
-        gameSupport[gameMode].mygamesPath = gameSupportXboxPass[gameMode].mygamesPath;
-      }
-    }
-  });
-
-  if (discovered['enderalspecialedition']?.path !== undefined) {
-    if (discovered['enderalspecialedition']?.path.toLowerCase().includes('skyrim')) {
-      gameSupport['enderalspecialedition'].mygamesPath = 'Skyrim Special Edition';
-      gameSupport['enderalspecialedition'].iniName = 'Skyrim.ini';
-      gameSupport['enderalspecialedition'].prefIniName = 'SkyrimPrefs.ini';
-    }
-  }
+  discoveryForGame = (gameId: string) => selectors.discoveryByGame(store.getState(), gameId);
 }
 
 export function gameSupported(gameMode: string): boolean {
@@ -145,20 +136,15 @@ export function gameSupported(gameMode: string): boolean {
 }
 
 export function mygamesPath(gameMode: string): string {
-  const relPath = (gameStoreForGame(gameMode) === 'gog') && !!gameSupportGOG[gameMode]
-    ? gameSupportGOG[gameMode].mygamesPath
-    : gameSupport[gameMode].mygamesPath;
-
-  return path.join(util.getVortexPath('documents'), 'My Games', relPath);
+  return path.join(util.getVortexPath('documents'), 'My Games', gameSupport.get(gameMode, 'mygamesPath'));
 }
 
 export function iniPath(gameMode: string): string {
-  const { iniName } = gameSupport[gameMode];
-  return path.join(mygamesPath(gameMode), iniName);
+  return path.join(mygamesPath(gameMode), gameSupport.get(gameMode, 'iniName'));
 }
 
 export function prefIniPath(gameMode: string): string {
-  const { prefIniName } = gameSupport[gameMode];
+  const prefIniName = gameSupport.get(gameMode, 'prefIniName');
   if (prefIniName === undefined) {
     return undefined;
   }
@@ -166,5 +152,5 @@ export function prefIniPath(gameMode: string): string {
 }
 
 export function saveFiles(gameMode: string, savePath: string): string[] {
-  return gameSupport[gameMode].saveFiles(savePath);
+  return gameSupport.get(gameMode, 'saveFiles')(savePath);
 }
