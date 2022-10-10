@@ -210,8 +210,6 @@ function onProfilesModified(store: Redux.Store<any>,
 function once(context: types.IExtensionContext, update: util.Debouncer) {
   const store: Redux.Store<any> = context.api.store;
 
-  initGameSupport(store);
-
   context.api.setStylesheet('savegame-management',
     path.join(__dirname, 'savegame_management.scss'));
 
@@ -223,7 +221,6 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
 
   context.api.onStateChange(
     ['settings', 'gameMode', 'discovered'], (previous, current) => {
-      initGameSupport(store);
       updateSavegames(context.api, update);
     });
 
@@ -500,6 +497,8 @@ function getInstalledPlugins(api: types.IExtensionApi): Promise<string[]> {
 }
 
 function init(context: IExtensionContextExt): boolean {
+  initGameSupport(context.api);
+
   context.registerReducer(['session', 'saves'], sessionReducer);
   context.registerReducer(['settings', 'saves'], settingsReducer);
 

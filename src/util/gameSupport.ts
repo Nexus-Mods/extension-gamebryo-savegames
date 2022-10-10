@@ -127,8 +127,8 @@ const gameSupport = util.makeOverlayableDictionary<string, IGameSupport>({
 
 let discoveryForGame: (gameId: string) => types.IDiscoveryResult = () => undefined;
 
-export function initGameSupport(store: Redux.Store<types.IState>) {
-  discoveryForGame = (gameId: string) => selectors.discoveryByGame(store.getState(), gameId);
+export function initGameSupport(api: types.IExtensionApi) {
+  discoveryForGame = (gameId: string) => selectors.discoveryByGame(api.store.getState(), gameId);
 }
 
 export function gameSupported(gameMode: string): boolean {
