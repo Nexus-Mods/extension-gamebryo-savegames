@@ -258,7 +258,15 @@ function once(context: types.IExtensionContext, update: util.Debouncer) {
         { label: 'Remove' },
       ]).then(result => {
         if (result.action === 'Remove') {
-          return fs.removeAsync(savesPath);
+          return fs.removeAsync(savesPath)
+            .catch(err => {
+              if (err instanceof util.UserCanceled) {
+                return;
+              }
+              context.api.showErrorNotification('Failed to remove savegame', err, {
+                allowReport: false,
+              });
+            });
         }
       });
     } else {
