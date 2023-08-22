@@ -182,6 +182,13 @@
   resolved "https://registry.yarnpkg.com/@types/react/-/react-16.0.34.tgz#7a8f795afd8a404a9c4af9539b24c75d3996914e"
   integrity sha512-Ee66fX2qMsDnDq7sPnDtq1bGoo479j6Fo1BlSnne+L5rp6ndzBUgz72+MRNuN56zg9uuteRCkJAMdDJEX2Uqig==
 
+"@types/redux-thunk@2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@types/redux-thunk/-/redux-thunk-2.1.0.tgz#bc2b6e972961831afb82a9bf4f06726e351f9416"
+  integrity sha512-8M+kcrnZQYO3A40d8a1lieBFur/ab8EXHqa2dGMQqsmBaVCbNp3gd8ed/HuSjLoLA63ov/trXaXWlkiKVF4VUw==
+  dependencies:
+    redux-thunk "*"
+
 "@types/redux@3.6.0":
   version "3.6.0"
   resolved "https://registry.yarnpkg.com/@types/redux/-/redux-3.6.0.tgz#f1ebe1e5411518072e4fdfca5c76e16e74c1399a"
@@ -1044,7 +1051,17 @@ function-bind@^1.1.1:
   resolved "https://registry.yarnpkg.com/function-bind/-/function-bind-1.1.1.tgz#a56899d3ea3c9bab874bb9773b7c5ede92f4895d"
   integrity sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==
 
-
+gamebryo-savegame@Nexus-Mods/node-gamebryo-savegames:
+  version "2.0.8"
+  resolved "https://codeload.github.com/Nexus-Mods/node-gamebryo-savegames/tar.gz/bb1f536571cb69f9f0894ac6283b406fd86f3701"
+  dependencies:
+    autogypi "^0.2.2"
+    copyfiles "^2.1.0"
+    cross-fetch "^3.0.1"
+    node-addon-api "^4.0.0"
+    node-gyp "^9.0.0"
+    node-stream-zip "^1.8.0"
+    prebuild-install "7.1.0"
 
 gauge@^4.0.3:
   version "4.0.4"
