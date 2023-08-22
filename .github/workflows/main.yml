@@ -23,3 +23,11 @@ jobs:
 
       - name: Install dependencies
         run: yarn install
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        if: inputs.build-unpacked == true
+        with:
+          name: yarn.lock
+          path: ./yarn.lock
+          if-no-files-found: error
