@@ -77,6 +77,13 @@ const gameSupport = util.makeOverlayableDictionary<string, IGameSupport>({
       return [].concat([input], scriptExtenderFiles(input, 'nvse'));
     },
   },
+  starfield: {
+    mygamesPath: 'Starfield',
+    iniName: 'StarfieldCustom.ini',
+    saveFiles: (input: string): string[] => {
+      return [].concat([input], scriptExtenderFiles(input, 'sfse'));
+    },
+  },
   oblivion: {
     mygamesPath: 'Oblivion',
     iniName: 'Oblivion.ini',
