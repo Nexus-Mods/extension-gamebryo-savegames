@@ -39,7 +39,7 @@ export interface IRefreshResult {
 
 function isSavegame(input: IEntry) {
   return !input.isDirectory
-    && ['.ess', '.fos'].indexOf(path.extname(input.filePath).toLowerCase()) !== -1;
+    && ['.ess', '.fos', '.sfs'].indexOf(path.extname(input.filePath).toLowerCase()) !== -1;
 }
 
 /**

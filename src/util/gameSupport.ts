@@ -80,6 +80,7 @@ const gameSupport = util.makeOverlayableDictionary<string, IGameSupport>({
   starfield: {
     mygamesPath: 'Starfield',
     iniName: 'StarfieldCustom.ini',
+    prefIniName: 'StarfieldPrefs.ini',
     saveFiles: (input: string): string[] => {
       return [].concat([input], scriptExtenderFiles(input, 'sfse'));
     },
@@ -106,6 +107,9 @@ const gameSupport = util.makeOverlayableDictionary<string, IGameSupport>({
     fallout4: {
       mygamesPath: 'Fallout4 MS',
     },
+    starfield: {
+      mygamesPath: path.join(util.getVortexPath('localAppData'), 'Packages', 'BethesdaSoftworks.Starfield_3275kfvn8vcwc', 'SystemAppData', 'wgs'),
+    }
   },
   gog: {
     skyrimse: {
@@ -153,7 +157,8 @@ export function gameSupported(gameMode: string): boolean {
 }
 
 export function mygamesPath(gameMode: string): string {
-  return path.join(util.getVortexPath('documents'), 'My Games', gameSupport.get(gameMode, 'mygamesPath'));
+  const savesPath = gameSupport.get(gameMode, 'mygamesPath');
+  return path.isAbsolute(savesPath) ? savesPath : path.join(util.getVortexPath('documents'), 'My Games', savesPath);
 }
 
 export function iniPath(gameMode: string): string {
