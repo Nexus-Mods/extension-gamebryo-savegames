@@ -77,13 +77,14 @@ const gameSupport = util.makeOverlayableDictionary<string, IGameSupport>({
       return [].concat([input], scriptExtenderFiles(input, 'nvse'));
     },
   },
-  starfield: {
-    mygamesPath: 'Starfield',
-    iniName: 'StarfieldCustom.ini',
-    saveFiles: (input: string): string[] => {
-      return [].concat([input], scriptExtenderFiles(input, 'sfse'));
-    },
-  },
+  // starfield: {
+  //   mygamesPath: 'Starfield',
+  //   iniName: 'StarfieldCustom.ini',
+  //   prefIniName: 'StarfieldPrefs.ini',
+  //   saveFiles: (input: string): string[] => {
+  //     return [].concat([input], scriptExtenderFiles(input, 'sfse'));
+  //   },
+  // },
   oblivion: {
     mygamesPath: 'Oblivion',
     iniName: 'Oblivion.ini',
@@ -106,6 +107,9 @@ const gameSupport = util.makeOverlayableDictionary<string, IGameSupport>({
     fallout4: {
       mygamesPath: 'Fallout4 MS',
     },
+    // starfield: {
+    //   mygamesPath: path.join(util.getVortexPath('localAppData'), 'Packages', 'BethesdaSoftworks.Starfield_3275kfvn8vcwc', 'SystemAppData', 'wgs'),
+    // }
   },
   gog: {
     skyrimse: {
