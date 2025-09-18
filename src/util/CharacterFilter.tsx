@@ -54,7 +54,7 @@ function mapStateToProps(state: any): IConnectedProps {
 }
 
 const FilterConn = connect(mapStateToProps)(
-  CharacterFilterComponent) as React.ComponentClass<types.IFilterProps & IExtraProps>;
+  CharacterFilterComponent) as unknown as React.ComponentClass<types.IFilterProps & IExtraProps>;
 
 class CharacterFilter implements types.ITableFilter {
   public component: React.ComponentType<types.IFilterProps & IExtraProps>;

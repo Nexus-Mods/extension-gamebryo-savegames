@@ -88,4 +88,4 @@ function mapStateToProps(state: any): IConnectedProps {
   };
 }
 
-export default connect(mapStateToProps)(PluginList) as React.ComponentClass<IBaseProps>;
+export default connect(mapStateToProps)(PluginList) as unknown as React.ComponentClass<IBaseProps>;
