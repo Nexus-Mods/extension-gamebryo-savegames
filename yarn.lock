@@ -2557,15 +2557,6 @@ winapi-bindings@Nexus-Mods/node-winapi-bindings:
     node-gyp "^10.0.0"
     prebuild-install "^7.1.2"
 
-winapi-bindings@nexus-mods/node-winapi-bindings:
-  version "2.7.0"
-  resolved "https://codeload.github.com/nexus-mods/node-winapi-bindings/tar.gz/2e278fe19e8e7105b9e5baf445449f1aed495c72"
-  dependencies:
-    autogypi "^0.2.2"
-    node-addon-api "^8.0.0"
-    node-gyp "^10.0.0"
-    prebuild-install "^7.1.2"
-
 "wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
