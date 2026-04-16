@@ -39,18 +39,20 @@ all native dependencies.
 
 ## Test coverage
 
-47 save files across 6 game formats, downloaded from Nexus Mods:
+18 save files (3 per game) across 6 game formats, reduced from the original 47
+to save space in the repository. Originally verified against saves downloaded
+from Nexus Mods.
 
 | Format | Header | Games | Saves | Status |
 |--------|--------|-------|-------|--------|
-| Oblivion | `TES4SAVEGAME` | Oblivion | 6 | All pass |
-| Skyrim LE | `TESV_SAVEGAME` (ver < 0x0c) | Skyrim | 10 | All pass |
-| Skyrim SE | `TESV_SAVEGAME` (ver >= 0x0c) | Skyrim SE/VR | 10 | All pass |
-| Fallout 3 | `FO3SAVEGAME` (4-byte probe) | Fallout 3 | 8 | All pass |
-| Fallout NV | `FO3SAVEGAME` (5-byte probe) | Fallout NV | 5 | All pass |
-| Fallout 4 | `FO4_SAVEGAME` | Fallout 4/VR | 8 | All pass |
+| Oblivion | `TES4SAVEGAME` | Oblivion | 3 | All pass |
+| Skyrim LE | `TESV_SAVEGAME` (ver < 0x0c) | Skyrim | 3 | All pass |
+| Skyrim SE | `TESV_SAVEGAME` (ver >= 0x0c) | Skyrim SE/VR | 3 | All pass |
+| Fallout 3 | `FO3SAVEGAME` (4-byte probe) | Fallout 3 | 3 | All pass |
+| Fallout NV | `FO3SAVEGAME` (5-byte probe) | Fallout NV | 3 | All pass |
+| Fallout 4 | `FO4_SAVEGAME` | Fallout 4/VR | 3 | All pass |
 
-799 assertions verified: character name, level, location, save number, creation time,
+306 assertions verified: character name, level, location, save number, creation time,
 play time, plugin lists, screenshot dimensions, and screenshot SHA-256 hashes
 (byte-perfect RGBA output match).
 
