@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { BinaryReader } from './BinaryReader';
 
 export interface Dimensions {
@@ -280,9 +282,6 @@ const HEADERS: Array<[string, (r: BinaryReader, q: boolean) => Partial<SaveGameD
   ['FO3SAVEGAME', readFO3],
   ['FO4_SAVEGAME', readFO4],
 ];
-
-import * as fs from 'fs';
-import * as path from 'path';
 
 // Quick read only needs the first ~256 bytes of header metadata.
 // Reading 4KB avoids loading multi-MB files just to parse a few fields.

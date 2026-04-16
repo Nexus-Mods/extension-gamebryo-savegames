@@ -3,3 +3,7 @@ node_modules
 out
 yarn-error.log
 build
+package-lock.json
+test/bench_*.js
+test/check_*.js
+test/trim-saves.js

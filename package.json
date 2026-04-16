@@ -54,8 +54,6 @@
     "@types/react-dom": "16.9.25"
   },
   "dependencies": {
-    "lz4-asm": "^0.4.2",
-    "lz4js": "^0.2.0",
-    "restructure": "^3.0.2"
+    "lz4js": "^0.2.0"
   }
 }
