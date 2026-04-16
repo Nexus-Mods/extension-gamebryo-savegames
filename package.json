@@ -7,7 +7,7 @@
   "scripts": {
     "webpack": "node ./node_modules/webpack/bin/webpack --config webpack.config.js --progress --profile --color",
     "clear": "rm-local-modules",
-    "copyfiles": "copyfiles -f ./node_modules/gamebryo-savegame/build/Release/GamebryoSave.node ./dist && copyfiles -f ./node_modules/gamebryo-savegame/dist/liblz4.dll ./dist && copyfiles -f ./node_modules/gamebryo-savegame/dist/zlib.dll ./dist && copyfiles -f src/stylesheets/savegame_management.scss dist",
+    "copyfiles": "copyfiles -f src/stylesheets/savegame_management.scss dist",
     "build": "npm run webpack && npm run copyfiles && extractInfo",
     "installDev": "copyfiles -u 1 dist/**/* ../../out/bundledPlugins/gamebryo-savegame-management",
     "buildDev": "npm run build && npm run installDev"
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/immutability-helper": "^2.6.3",
+    "@types/node": "^25.6.0",
     "@types/react": "16.14.66",
     "@types/react-bootstrap": "^0.32.16",
     "@types/react-dom": "16.9.25",
@@ -31,7 +32,6 @@
     "babel-loader": "^8.0.6",
     "bluebird": "^3.7.2",
     "copyfiles": "^2.1.1",
-    "gamebryo-savegame": "Nexus-Mods/node-gamebryo-savegames",
     "i18next": "^15.0.9",
     "immutability-helper": "^2.8.1",
     "prop-types": "^15.7.2",
@@ -42,6 +42,7 @@
     "redux-act": "^1.7.7",
     "rm-local-modules": "^0.0.2",
     "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
     "turbowalk": "Nexus-Mods/node-turbowalk",
     "vortex-api": "Nexus-Mods/vortex-api",
     "vortex-parse-ini": "Nexus-Mods/vortex-parse-ini",
@@ -51,5 +52,8 @@
   "resolutions": {
     "@types/react": "16.14.66",
     "@types/react-dom": "16.9.25"
+  },
+  "dependencies": {
+    "lz4js": "^0.2.0"
   }
 }
