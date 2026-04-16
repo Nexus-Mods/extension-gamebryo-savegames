@@ -58,111 +58,19 @@ play time, plugin lists, screenshot dimensions, and screenshot SHA-256 hashes
 
 ## Performance
 
-### Pre-optimization benchmarks (full file read)
+The hot path in Vortex is **quick read** — listing saves only needs the first ~256
+bytes of header metadata per file. The C++ addon read the entire file (often 3–37MB)
+just to parse those bytes. The TypeScript implementation reads only 4KB via
+`fs.readSync`.
 
-Quick read loads the full file with `fs.readFileSync` even though only the first
-~256 bytes of header are parsed.
+| Metric | C++ native | TypeScript |
+|--------|-----------|------------|
+| Quick read (per save) | 0.13ms | **0.03ms (4x faster)** |
+| Listing 200 saves | 26ms | **6ms** |
+| Full read (per save) | 0.35ms | 3.19ms |
+| Full read, Skyrim SE (worst case) | — | 11.24ms |
+| Native dependencies | 3 (.node, liblz4, zlib) | **0** |
+| Build toolchain | node-gyp + CMake + VS | **none** |
 
-```
-=== Quick Read (metadata only) — 47 saves ===
-TypeScript:  39.9ms total, 0.85ms/save
-C++ Native:   6.3ms total, 0.13ms/save
-Ratio:       6.33x
-
-=== Full Read (metadata + plugins + screenshot) — 47 saves ===
-TypeScript:  151.3ms total, 3.22ms/save
-C++ Native:   16.4ms total, 0.35ms/save
-Ratio:       9.23x
-
-=== Per-Game Breakdown (TypeScript, quick read) ===
-oblivion     6 saves, 12MB total,  3.0ms total, 0.50ms/save
-skyrim       10 saves, 33MB total, 8.1ms total, 0.81ms/save
-skyrimse     10 saves, 30MB total, 7.5ms total, 0.75ms/save
-fallout3     8 saves, 18MB total,  4.4ms total, 0.55ms/save
-falloutnv    5 saves, 13MB total,  3.1ms total, 0.62ms/save
-fallout4     8 saves, 37MB total,  8.5ms total, 1.07ms/save
-
-=== Per-Game Breakdown (TypeScript, full read) ===
-oblivion     6 saves, 12MB total,   3.4ms total,  0.57ms/save
-skyrim       10 saves, 33MB total,  9.0ms total,  0.90ms/save
-skyrimse     10 saves, 30MB total, 112.5ms total, 11.25ms/save  <-- LZ4 decompression
-fallout3     8 saves, 18MB total,   6.7ms total,  0.84ms/save
-falloutnv    5 saves, 13MB total,   4.5ms total,  0.90ms/save
-fallout4     8 saves, 37MB total,   9.6ms total,  1.20ms/save
-```
-
-### Analysis: where time is spent
-
-**Quick read:** Dominated by `fs.readFileSync` reading 3-37MB files to parse ~256 bytes
-of header. The actual parsing is microseconds. Fix: partial file read.
-
-**Full read, non-SE formats:** Dominated by `fs.readFileSync` + screenshot buffer read.
-Already fast at <1.2ms/save.
-
-**Full read, Skyrim SE (11.25ms/save):** LZ4 decompression of 3MB compressed → 9MB
-uncompressed to read ~1.8KB of plugin data (0.019% of decompressed output). The
-decompression itself is inherently ~12ms regardless of implementation:
-
-```
-LZ4 microbenchmark (3MB → 9MB):
-  lz4js (pure JS):           12.4ms/call
-  Node.js zlib (native C):   11.6ms/call  (same data, for reference)
-  Buffer allocation (9MB):    0.15ms/call
-  fs.readFileSync (3MB):      0.82ms/call
-```
-
-`lz4js` is already at parity with native C zlib for the same data volume. No pure-JS
-or WASM LZ4 package would meaningfully improve this — the bottleneck is processing
-3MB of compressed input, not the algorithm.
-
-### Post-optimization benchmarks (partial file read for quick mode)
-
-After optimization: quick read uses `fs.openSync` + `fs.readSync` to read only 4KB
-instead of the full file. All 6 formats need at most 256 bytes for quick-read metadata.
-
-```
-=== Quick Read (metadata only) — 47 saves ===
-TypeScript:   1.6ms total, 0.03ms/save
-C++ Native:   6.2ms total, 0.13ms/save
-Ratio:       0.26x  ← TypeScript is 4x FASTER than C++
-
-=== Full Read (metadata + plugins + screenshot) — 47 saves ===
-TypeScript:  150.0ms total, 3.19ms/save
-C++ Native:   16.4ms total, 0.35ms/save
-Ratio:       9.15x
-
-=== Per-Game Breakdown (TypeScript, quick read) ===
-oblivion     6 saves, 12MB total, 0.2ms total, 0.03ms/save
-skyrim       10 saves, 33MB total, 0.2ms total, 0.02ms/save
-skyrimse     10 saves, 30MB total, 0.3ms total, 0.03ms/save
-fallout3     8 saves, 18MB total, 0.3ms total, 0.03ms/save
-falloutnv    5 saves, 13MB total, 0.2ms total, 0.04ms/save
-fallout4     8 saves, 37MB total, 0.2ms total, 0.02ms/save
-
-=== Per-Game Breakdown (TypeScript, full read) ===
-oblivion     6 saves, 12MB total,   4.5ms total,  0.75ms/save
-skyrim       10 saves, 33MB total,  8.9ms total,  0.89ms/save
-skyrimse     10 saves, 30MB total, 112.4ms total, 11.24ms/save  <-- LZ4 decompression
-fallout3     8 saves, 18MB total,   6.4ms total,  0.80ms/save
-falloutnv    5 saves, 13MB total,   4.7ms total,  0.94ms/save
-fallout4     8 saves, 37MB total,   9.6ms total,  1.20ms/save
-```
-
-### Improvement summary
-
-| Metric | Before (C++) | After (TS, pre-opt) | After (TS, optimized) |
-|--------|-------------|--------------------|-----------------------|
-| Quick read/save | 0.13ms | 0.85ms (6.3x slower) | **0.03ms (4x faster)** |
-| Full read/save | 0.35ms | 3.22ms (9.2x slower) | 3.19ms (9.1x slower) |
-| 200 saves listing | 26ms | 170ms | **6ms** |
-| Native deps | 3 (node, lz4, zlib) | 0 | 0 |
-| Build tools | node-gyp + CMake + VS | none | none |
-| Platform binaries | per-platform .node + .dll | none | none |
-
-Quick read (the hot path for listing saves in Vortex) went from 6.3x slower than C++
-to **4x faster**, because the C++ addon reads the entire file via `ifstream` while the
-optimized TypeScript reads only 4KB via `fs.readSync`.
-
-Full read is 9x slower due to LZ4 decompression overhead, but at 3.19ms/save (worst
-case 11.24ms for Skyrim SE) it is imperceptible — full read only happens when a user
-clicks a single save to view its details.
+Full read is ~9x slower due to pure-JS LZ4 decompression, but this only runs when a
+user clicks a single save to view details. At 3–11ms it's imperceptible.
